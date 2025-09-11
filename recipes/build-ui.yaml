@@ -52,8 +52,8 @@ instructions: |
     - UI is deployed to Vercel
 
   File Structure:
-    - Operations: ~/Development/apollo-summit-2025/operations/<OPERATION_NAME>.graphql
-    - UI Component: ~/Development/apollo-summit-2025/src/components/<COMPONENT_NAME>.html
+    - Operations: ~/Development/apollo-summit-2025-presentation/operations/<OPERATION_NAME>.graphql
+    - UI Component: ~/Development/apollo-summit-2025-presentation/src/components/<COMPONENT_NAME>.html
 
 extensions:
   - type: "builtin"
@@ -75,7 +75,7 @@ extensions:
     name: "vercel"
     cmd: "node"
     args:
-      - "/Users/rudra/Development/apollo-summit-2025/mcps/vercel/dist/index.js"
+      - "/Users/rudra/Development/apollo-summit-2025-presentation/mcps/vercel/dist/index.js"
     env_keys:
       - VERCEL_TOKEN
     timeout: 300

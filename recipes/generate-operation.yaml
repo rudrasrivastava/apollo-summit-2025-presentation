@@ -11,8 +11,8 @@ instructions: |
     - Write a named GraphQL operation; the file name must exactly match the operation name.
     - Declare GraphQL variables and actually use them in field arguments/filters.
     - Include only fields relevant to the stated use case.
-    - Add a short, helpful description (triple-quoted doc string) at the top of the file.
-    - Save to: ~/Development/apollo-summit-2025/operations/<OP_NAME>.graphql
+    - Add a short, helpful description (using # comment) at the top of the file.
+    - Save to: ~/Development/apollo-summit-2025-presentation/operations/<OP_NAME>.graphql
     - Validate the operation against the schema (no unknown fields/args).
     - Return the final operation.
   Process:

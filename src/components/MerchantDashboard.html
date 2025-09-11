@@ -5,58 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Merchant Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                        }
+                        primary: '#3B82F6',
+                        secondary: '#6B7280',
+                        success: '#10B981',
+                        danger: '#EF4444',
+                        warning: '#F59E0B'
                     }
                 }
             }
         }
     </script>
-    <style>
-        .loading-spinner {
-            border: 2px solid #f3f4f6;
-            border-top: 2px solid #3b82f6;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
+            <div class="flex justify-between items-center py-4">
                 <div class="flex items-center">
+                    <i class="fas fa-store text-primary text-2xl mr-3"></i>
                     <h1 class="text-2xl font-bold text-gray-900">Merchant Dashboard</h1>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <span class="text-sm text-gray-500">GraphQL Endpoint: localhost:4000</span>
+                    <span class="text-sm text-gray-500">Connected to GraphQL API</span>
+                    <div id="connection-status" class="w-3 h-3 bg-success rounded-full"></div>
                 </div>
             </div>
         </div>
@@ -66,307 +43,335 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Search Section -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Search Merchant by ID</h2>
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-search mr-2"></i>Search Merchant by ID
+            </h2>
             <div class="flex gap-4">
                 <div class="flex-1">
                     <input 
                         type="text" 
                         id="merchantIdInput" 
                         placeholder="Enter merchant ID or 'me' for current merchant"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     >
                 </div>
                 <button 
-                    id="searchButton"
-                    class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    id="searchBtn" 
+                    class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors"
                 >
-                    <span id="searchButtonText">Search</span>
-                    <div id="searchSpinner" class="loading-spinner hidden"></div>
+                    <i class="fas fa-search mr-2"></i>Search
                 </button>
             </div>
-            <div id="searchError" class="mt-3 text-sm text-red-600 hidden"></div>
         </div>
 
-        <!-- Merchant Details Section -->
-        <div id="merchantDetailsSection" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8 hidden">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Merchant Details</h2>
-            <div id="merchantDetailsContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Content will be populated dynamically -->
+        <!-- Single Merchant Details -->
+        <div id="singleMerchantSection" class="hidden bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-user-tie mr-2"></i>Merchant Details
+                </h2>
+                <button id="clearSearchBtn" class="text-sm text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times mr-1"></i>Clear
+                </button>
             </div>
+            <div id="singleMerchantContent"></div>
         </div>
 
         <!-- All Merchants Section -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-lg font-semibold text-gray-900">All Merchants</h2>
-                <button 
-                    id="refreshButton"
-                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
-                >
-                    <span id="refreshButtonText">Refresh</span>
-                    <div id="refreshSpinner" class="loading-spinner hidden"></div>
-                </button>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-list mr-2"></i>All Merchants
+                    </h2>
+                    <button 
+                        id="refreshBtn" 
+                        class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                        <i class="fas fa-sync-alt mr-2"></i>Refresh
+                    </button>
+                </div>
             </div>
-            
-            <!-- Loading State -->
-            <div id="merchantsLoading" class="flex items-center justify-center py-12">
-                <div class="loading-spinner mr-3"></div>
-                <span class="text-gray-600">Loading merchants...</span>
-            </div>
-            
-            <!-- Error State -->
-            <div id="merchantsError" class="text-center py-12 hidden">
-                <div class="text-red-600 mb-2">Failed to load merchants</div>
-                <div id="merchantsErrorMessage" class="text-sm text-gray-500"></div>
-            </div>
-            
-            <!-- Empty State -->
-            <div id="merchantsEmpty" class="text-center py-12 hidden">
-                <div class="text-gray-500 mb-2">No merchants found</div>
-                <div class="text-sm text-gray-400">There are no merchants associated with this account.</div>
-            </div>
-            
-            <!-- Merchants Grid -->
-            <div id="merchantsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
-                <!-- Merchant cards will be populated here -->
+            <div id="merchantsList" class="p-6">
+                <!-- Merchants will be loaded here -->
             </div>
         </div>
     </main>
 
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 flex items-center space-x-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span class="text-gray-700">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="fixed top-4 right-4 bg-danger text-white px-6 py-4 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300 z-50">
+        <div class="flex items-center">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            <span id="errorMessage"></span>
+            <button id="closeErrorBtn" class="ml-4 text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
     <script>
-        // GraphQL endpoint
-        const GRAPHQL_ENDPOINT = 'http://localhost:4000';
-        
-        // GraphQL operations
-        const GET_MERCHANT_DETAILS = `
-            query GetMerchantDetailsForDashboard($merchantId: ID!) {
-                merchant(id: $merchantId) {
-                    id
-                    businessName
-                    status
-                    country
-                    currency
-                    languageCode
-                    createdAt
-                }
+        class MerchantDashboard {
+            constructor() {
+                this.graphqlEndpoint = 'http://localhost:4000';
+                this.init();
             }
-        `;
-        
-        const GET_ALL_MERCHANTS = `
-            query GetAllMerchantsForDashboard {
-                merchants {
-                    id
-                    businessName
-                    country
-                    currency
-                    status
-                    createdAt
-                }
+
+            init() {
+                this.bindEvents();
+                this.loadAllMerchants();
             }
-        `;
-        
-        // Utility function to make GraphQL requests
-        async function graphqlRequest(query, variables = {}) {
-            try {
-                const response = await fetch(GRAPHQL_ENDPOINT, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        query,
-                        variables
-                    })
+
+            bindEvents() {
+                document.getElementById('searchBtn').addEventListener('click', () => this.searchMerchant());
+                document.getElementById('merchantIdInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.searchMerchant();
                 });
-                
-                const data = await response.json();
-                
-                if (data.errors) {
-                    throw new Error(data.errors[0].message);
+                document.getElementById('clearSearchBtn').addEventListener('click', () => this.clearSearch());
+                document.getElementById('refreshBtn').addEventListener('click', () => this.loadAllMerchants());
+                document.getElementById('closeErrorBtn').addEventListener('click', () => this.hideError());
+            }
+
+            async graphqlRequest(query, variables = {}) {
+                try {
+                    const response = await fetch(this.graphqlEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query,
+                            variables
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.errors) {
+                        throw new Error(result.errors[0].message);
+                    }
+
+                    return result.data;
+                } catch (error) {
+                    console.error('GraphQL request failed:', error);
+                    throw error;
                 }
-                
-                return data.data;
-            } catch (error) {
-                console.error('GraphQL request failed:', error);
-                throw error;
             }
-        }
-        
-        // Format date for display
-        function formatDate(dateString) {
-            if (!dateString) return 'N/A';
-            return new Date(dateString).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        }
-        
-        // Format status for display
-        function formatStatus(status) {
-            if (!status) return 'Unknown';
-            return status === 'ACTIVE' ? 
-                '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>' :
-                '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Inactive</span>';
-        }
-        
-        // Create merchant detail card
-        function createMerchantDetailCard(label, value, icon = '') {
-            return `
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <div class="flex items-center mb-2">
-                        ${icon}
-                        <span class="text-sm font-medium text-gray-500">${label}</span>
-                    </div>
-                    <div class="text-lg font-semibold text-gray-900">${value || 'N/A'}</div>
-                </div>
-            `;
-        }
-        
-        // Create merchant card for grid
-        function createMerchantCard(merchant) {
-            return `
-                <div class="bg-gray-50 rounded-lg p-6 hover:bg-gray-100 transition-colors cursor-pointer fade-in" onclick="searchMerchantById('${merchant.id}')">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900 truncate">${merchant.businessName || 'Unnamed Business'}</h3>
-                        ${formatStatus(merchant.status)}
-                    </div>
-                    <div class="space-y-2 text-sm text-gray-600">
-                        <div><span class="font-medium">ID:</span> ${merchant.id}</div>
-                        <div><span class="font-medium">Country:</span> ${merchant.country || 'N/A'}</div>
-                        <div><span class="font-medium">Currency:</span> ${merchant.currency || 'N/A'}</div>
-                        <div><span class="font-medium">Created:</span> ${formatDate(merchant.createdAt)}</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Search merchant by ID
-        async function searchMerchantById(merchantId) {
-            const searchButton = document.getElementById('searchButton');
-            const searchSpinner = document.getElementById('searchSpinner');
-            const searchButtonText = document.getElementById('searchButtonText');
-            const searchError = document.getElementById('searchError');
-            const merchantDetailsSection = document.getElementById('merchantDetailsSection');
-            const merchantDetailsContent = document.getElementById('merchantDetailsContent');
-            const merchantIdInput = document.getElementById('merchantIdInput');
-            
-            // Update input if called programmatically
-            if (merchantId) {
-                merchantIdInput.value = merchantId;
-            } else {
-                merchantId = merchantIdInput.value.trim();
+
+            showLoading() {
+                document.getElementById('loadingOverlay').classList.remove('hidden');
             }
-            
-            if (!merchantId) {
-                searchError.textContent = 'Please enter a merchant ID';
-                searchError.classList.remove('hidden');
-                return;
+
+            hideLoading() {
+                document.getElementById('loadingOverlay').classList.add('hidden');
             }
-            
-            // Show loading state
-            searchButton.disabled = true;
-            searchSpinner.classList.remove('hidden');
-            searchButtonText.textContent = 'Searching...';
-            searchError.classList.add('hidden');
-            merchantDetailsSection.classList.add('hidden');
-            
-            try {
-                const data = await graphqlRequest(GET_MERCHANT_DETAILS, { merchantId });
+
+            showError(message) {
+                const errorToast = document.getElementById('errorToast');
+                const errorMessage = document.getElementById('errorMessage');
+                errorMessage.textContent = message;
+                errorToast.classList.remove('translate-x-full');
                 
-                if (!data.merchant) {
-                    throw new Error('Merchant not found');
-                }
-                
-                const merchant = data.merchant;
-                
-                // Populate merchant details
-                merchantDetailsContent.innerHTML = `
-                    ${createMerchantDetailCard('Business Name', merchant.businessName, '<svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>')}
-                    ${createMerchantDetailCard('Merchant ID', merchant.id, '<svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>')}
-                    ${createMerchantDetailCard('Status', formatStatus(merchant.status), '<svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>')}
-                    ${createMerchantDetailCard('Country', merchant.country, '<svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>')}
-                    ${createMerchantDetailCard('Currency', merchant.currency, '<svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>')}
-                    ${createMerchantDetailCard('Language', merchant.languageCode, '<svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path></svg>')}
-                    ${createMerchantDetailCard('Created Date', formatDate(merchant.createdAt), '<svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>')}
-                `;
-                
-                merchantDetailsSection.classList.remove('hidden');
-                merchantDetailsSection.classList.add('fade-in');
-                
-            } catch (error) {
-                searchError.textContent = error.message;
-                searchError.classList.remove('hidden');
-            } finally {
-                // Reset loading state
-                searchButton.disabled = false;
-                searchSpinner.classList.add('hidden');
-                searchButtonText.textContent = 'Search';
+                setTimeout(() => {
+                    this.hideError();
+                }, 5000);
             }
-        }
-        
-        // Load all merchants
-        async function loadAllMerchants() {
-            const merchantsLoading = document.getElementById('merchantsLoading');
-            const merchantsError = document.getElementById('merchantsError');
-            const merchantsErrorMessage = document.getElementById('merchantsErrorMessage');
-            const merchantsEmpty = document.getElementById('merchantsEmpty');
-            const merchantsGrid = document.getElementById('merchantsGrid');
-            const refreshButton = document.getElementById('refreshButton');
-            const refreshSpinner = document.getElementById('refreshSpinner');
-            const refreshButtonText = document.getElementById('refreshButtonText');
-            
-            // Show loading state
-            merchantsLoading.classList.remove('hidden');
-            merchantsError.classList.add('hidden');
-            merchantsEmpty.classList.add('hidden');
-            merchantsGrid.classList.add('hidden');
-            
-            // Update refresh button
-            refreshButton.disabled = true;
-            refreshSpinner.classList.remove('hidden');
-            refreshButtonText.textContent = 'Loading...';
-            
-            try {
-                const data = await graphqlRequest(GET_ALL_MERCHANTS);
+
+            hideError() {
+                document.getElementById('errorToast').classList.add('translate-x-full');
+            }
+
+            async searchMerchant() {
+                const merchantId = document.getElementById('merchantIdInput').value.trim();
                 
-                if (!data.merchants || data.merchants.length === 0) {
-                    merchantsLoading.classList.add('hidden');
-                    merchantsEmpty.classList.remove('hidden');
+                if (!merchantId) {
+                    this.showError('Please enter a merchant ID');
                     return;
                 }
+
+                this.showLoading();
+
+                try {
+                    const query = `
+                        query GetMerchantDashboard($merchantId: ID!) {
+                            merchant(id: $merchantId) {
+                                id
+                                businessName
+                                country
+                                currency
+                                status
+                                createdAt
+                                languageCode
+                            }
+                        }
+                    `;
+
+                    const data = await this.graphqlRequest(query, { merchantId });
+                    
+                    if (data.merchant) {
+                        this.displaySingleMerchant(data.merchant);
+                    } else {
+                        this.showError('Merchant not found');
+                    }
+                } catch (error) {
+                    this.showError(`Error fetching merchant: ${error.message}`);
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            async loadAllMerchants() {
+                this.showLoading();
+
+                try {
+                    const query = `
+                        query FetchAllMerchantsForDashboard {
+                            merchants {
+                                id
+                                businessName
+                                country
+                                languageCode
+                                currency
+                                status
+                                createdAt
+                            }
+                        }
+                    `;
+
+                    const data = await this.graphqlRequest(query);
+                    this.displayAllMerchants(data.merchants);
+                } catch (error) {
+                    this.showError(`Error fetching merchants: ${error.message}`);
+                    this.displayAllMerchants([]); // Show empty state
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            displaySingleMerchant(merchant) {
+                const section = document.getElementById('singleMerchantSection');
+                const content = document.getElementById('singleMerchantContent');
                 
-                // Populate merchants grid
-                merchantsGrid.innerHTML = data.merchants.map(merchant => createMerchantCard(merchant)).join('');
+                content.innerHTML = this.renderMerchantCard(merchant, true);
+                section.classList.remove('hidden');
+            }
+
+            clearSearch() {
+                document.getElementById('merchantIdInput').value = '';
+                document.getElementById('singleMerchantSection').classList.add('hidden');
+            }
+
+            displayAllMerchants(merchants) {
+                const container = document.getElementById('merchantsList');
                 
-                merchantsLoading.classList.add('hidden');
-                merchantsGrid.classList.remove('hidden');
+                if (!merchants || merchants.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-12">
+                            <i class="fas fa-store text-gray-300 text-6xl mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">No merchants found</h3>
+                            <p class="text-gray-500">There are no merchants to display at this time.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const merchantsHtml = merchants.map(merchant => 
+                    this.renderMerchantCard(merchant, false)
+                ).join('');
+
+                container.innerHTML = `
+                    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        ${merchantsHtml}
+                    </div>
+                `;
+            }
+
+            renderMerchantCard(merchant, isDetailed = false) {
+                const statusColor = merchant.status === 'ACTIVE' ? 'success' : 'danger';
+                const statusIcon = merchant.status === 'ACTIVE' ? 'check-circle' : 'times-circle';
+                const createdDate = new Date(merchant.createdAt).toLocaleDateString();
+
+                const cardClass = isDetailed 
+                    ? 'border border-gray-200 rounded-lg p-6' 
+                    : 'bg-gray-50 border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow';
+
+                return `
+                    <div class="${cardClass}">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-1">
+                                    ${merchant.businessName || 'Unnamed Business'}
+                                </h3>
+                                <p class="text-sm text-gray-500 font-mono">${merchant.id}</p>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${statusColor} text-white">
+                                <i class="fas fa-${statusIcon} mr-1"></i>
+                                ${merchant.status}
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-globe-americas w-4 text-gray-400 mr-3"></i>
+                                <span class="text-gray-600">Country:</span>
+                                <span class="ml-2 font-medium">${merchant.country}</span>
+                            </div>
+                            
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-dollar-sign w-4 text-gray-400 mr-3"></i>
+                                <span class="text-gray-600">Currency:</span>
+                                <span class="ml-2 font-medium">${merchant.currency}</span>
+                            </div>
+                            
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-language w-4 text-gray-400 mr-3"></i>
+                                <span class="text-gray-600">Language:</span>
+                                <span class="ml-2 font-medium">${merchant.languageCode}</span>
+                            </div>
+                            
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-calendar w-4 text-gray-400 mr-3"></i>
+                                <span class="text-gray-600">Created:</span>
+                                <span class="ml-2 font-medium">${createdDate}</span>
+                            </div>
+                        </div>
+                        
+                        ${!isDetailed ? `
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <button 
+                                    onclick="dashboard.loadMerchantDetails('${merchant.id}')"
+                                    class="w-full px-4 py-2 text-sm bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                >
+                                    <i class="fas fa-eye mr-2"></i>View Details
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            loadMerchantDetails(merchantId) {
+                document.getElementById('merchantIdInput').value = merchantId;
+                this.searchMerchant();
                 
-            } catch (error) {
-                merchantsLoading.classList.add('hidden');
-                merchantsError.classList.remove('hidden');
-                merchantsErrorMessage.textContent = error.message;
-            } finally {
-                // Reset refresh button
-                refreshButton.disabled = false;
-                refreshSpinner.classList.add('hidden');
-                refreshButtonText.textContent = 'Refresh';
+                // Scroll to the single merchant section
+                setTimeout(() => {
+                    document.getElementById('singleMerchantSection').scrollIntoView({ 
+                        behavior: 'smooth' 
+                    });
+                }, 100);
             }
         }
-        
-        // Event listeners
-        document.getElementById('searchButton').addEventListener('click', () => searchMerchantById());
-        document.getElementById('merchantIdInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                searchMerchantById();
-            }
-        });
-        document.getElementById('refreshButton').addEventListener('click', loadAllMerchants);
-        
+
         // Initialize the dashboard
-        document.addEventListener('DOMContentLoaded', () => {
-            loadAllMerchants();
-        });
+        const dashboard = new MerchantDashboard();
     </script>
 </body>
 </html>
