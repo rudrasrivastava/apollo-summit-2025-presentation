@@ -1,0 +1,13 @@
+# Fetch a single merchant by ID for the merchant dashboard
+# Returns comprehensive merchant details including business information, location, and status
+query GetMerchantDashboard($merchantId: ID!) {
+  merchant(id: $merchantId) {
+    id
+    businessName
+    country
+    currency
+    status
+    createdAt
+    languageCode
+  }
+}

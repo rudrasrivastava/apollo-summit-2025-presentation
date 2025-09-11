@@ -7,3 +7,12 @@ telemetry:
 
 cors:
   allow_any_origin: true
+
+headers:
+  connector:
+    # Set header configurations for all connectors
+    all:
+      request:
+        - insert:
+            name: "Authorization"
+            value: "Bearer ${env.AUTHORIZATION}"
