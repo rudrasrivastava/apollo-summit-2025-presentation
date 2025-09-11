@@ -1,0 +1,27 @@
+{
+  "name": "mcp-vercel",
+  "version": "1.0.0",
+  "description": "MCP Server for deploying to Vercel",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "mcp-vercel": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "npm run cleanup && tsc && chmod +x dist/index.js",
+    "cleanup": "rm -rf dist",
+    "prepare": "npm run build",
+    "watch": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.5.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.8.3"
+  }
+}

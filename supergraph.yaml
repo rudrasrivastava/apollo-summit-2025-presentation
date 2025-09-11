@@ -1,0 +1,6 @@
+subgraphs:
+  merchant-connector:
+    routing_url: http://ignore
+    schema:
+      file: subgraphs/merchant-connector.graphql
+federation_version: =2.11.0

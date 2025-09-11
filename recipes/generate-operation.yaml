@@ -1,0 +1,74 @@
+version: "1.0.0"
+title: "Generate GraphQL Operation"
+author:
+  contact: "rudra"
+description: "Generate a GraphQL Operation for a specific use case given by the user"
+instructions: |
+  You are tasked with generating a GraphQL Operation for a specific use case given by the user
+
+  Requirements:
+    - Discover/confirm the schema using search, introspection, or validation tools.
+    - Write a named GraphQL operation; the file name must exactly match the operation name.
+    - Declare GraphQL variables and actually use them in field arguments/filters.
+    - Include only fields relevant to the stated use case.
+    - Add a short, helpful description (triple-quoted doc string) at the top of the file.
+    - Save to: ~/Development/apollo-summit-2025/operations/<OP_NAME>.graphql
+    - Validate the operation against the schema (no unknown fields/args).
+    - Return the final operation.
+  Process:
+    - Identify the entry point for merchants (e.g., merchant(id:), merchants, or equivalent).
+    - Decide on variables that map to the use case (e.g., $merchantId, pagination/filter flags).
+    - Keep the selection set minimal; use fragments only if they clarify structure.
+    - Validate and remove any unused variables or fields.
+  Definition of Done:
+    - Operation name and file name are identical.
+    - Variables are declared and referenced.
+    - Only use-case-relevant fields are present.
+    - Operation validates against the schema without errors.
+    - The returned content contains the final GraphQL operation.
+  Output Template:
+    """
+    <Short, helpful description of the operation's purpose and how to use it.>
+    """
+    query <OP_NAME>(
+      $merchantId: ID!
+      # Add any additional variables you truly use, e.g.:
+      # $country: CountryCode
+      # $includeLocations: Boolean = false
+    ) {
+      merchant(id: $merchantId) {
+        id
+        name
+        # Add only relevant fields for the use case.
+        # Example (remove if not needed):
+        # primaryEmail
+        # status
+        # locations @include(if: $includeLocations) {
+        #   id
+        #   displayName
+        #   country
+        # }
+      }
+    }
+extensions:
+  - type: "builtin"
+    name: "developer"
+    display_name: "Developer"
+    timeout: 300
+    bundled: true
+  - type: "stdio"
+    name: "apollomcp"
+    cmd: "npx"
+    args:
+      - "-y"
+      - "mcp-remote@latest"
+      - "http://127.0.0.1:5000/mcp"
+      - "--allow-http"
+    timeout: 300
+    description: "For validating, introspecting and searching GraphQL schemas"
+prompt: "Generate a GraphQL Operation for the following use case: {{ use_case }}"
+parameters:
+  - key: "use_case"
+    input_type: "string"
+    requirement: "required"
+    description: "The use case for the operation"

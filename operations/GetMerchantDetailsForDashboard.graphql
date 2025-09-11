@@ -1,0 +1,18 @@
+"""
+Retrieves essential merchant details by ID for display in a dashboard.
+This operation fetches key merchant information including business name, 
+status, location, and basic configuration details needed for dashboard views.
+
+Usage: Pass a merchant ID (or "me" for current merchant) to get dashboard-relevant details.
+"""
+query GetMerchantDetailsForDashboard($merchantId: ID!) {
+  merchant(id: $merchantId) {
+    id
+    businessName
+    status
+    country
+    currency
+    languageCode
+    createdAt
+  }
+}

@@ -1,0 +1,15 @@
+"""
+Retrieves a list of all merchants associated with the access token for dashboard display.
+This operation fetches essential merchant information including business name, country, 
+currency, status, and creation date to populate a merchant dashboard view.
+"""
+query GetAllMerchantsForDashboard {
+  merchants {
+    id
+    businessName
+    country
+    currency
+    status
+    createdAt
+  }
+}

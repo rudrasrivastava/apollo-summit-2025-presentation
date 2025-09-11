@@ -1,0 +1,20 @@
+endpoint: http://localhost:4000
+transport:
+  type: streamable_http
+operations:
+  source: local
+  paths:
+    - ./operations
+schema:
+  source: uplink
+overrides:
+  mutation_mode: all
+introspection:
+  execute:
+    enabled: true
+  introspect:
+    enabled: true
+  search:
+    enabled: true
+  validate:
+    enabled: true

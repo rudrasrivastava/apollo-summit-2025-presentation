@@ -1,0 +1,9 @@
+telemetry:
+  exporters:
+    logging:
+      stdout:
+        enabled: true
+        format: text
+
+cors:
+  allow_any_origin: true

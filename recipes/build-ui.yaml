@@ -1,0 +1,93 @@
+version: "1.0.0"
+title: "Build GraphQL-Powered UI"
+author:
+  contact: "rudra"
+description: "Build a complete UI for a specific use case by generating multiple GraphQL operations and then a comprehensive UI"
+instructions: |
+  You are tasked with building a complete UI for a specific use case by generating multiple GraphQL operations and comprehensive UI based on those operations.
+
+  Requirements:
+    - Analyze the use case to identify all necessary GraphQL operations (queries, mutations, subscriptions).
+    - Use the generate-operation subrecipe to create each required operation.
+    - Build a modern, responsive UI as HTML using Tailwind CSS that dynamically consume the generated operations. 
+      Use localhost:4000 as the GraphQL endpoint (not /graphql just localhost:4000)
+    - Implement proper state management, loading states, and error handling.
+    - Follow modern UI/UX patterns and best practices.
+    - Create a cohesive, professional-looking interface.
+
+  Process:
+    1. Analysis Phase:
+       - Break down the use case into specific data requirements
+       - Identify all CRUD operations needed (Create, Read, Update, Delete)
+       - Determine any real-time data needs (subscriptions)
+       - Plan the UI flow and component hierarchy
+
+    2. Operation Generation Phase:
+       - For each identified data need, use the generate-operation sub-recipe
+       - Ensure operations are optimized for the specific UI requirements
+       - Generate both individual item and list operations as needed
+
+    3. UI Development Phase:
+       - Create an HTML file with all the UI components and styles (and dynamically load data using GraphQL operations)
+       - Add loading states, error boundaries, and empty states
+       - Style with modern CSS/Tailwind for professional appearance
+
+    4. Integration Phase:
+       - Connect UI component to GraphQL operations
+       - Implement proper caching and refetching strategies
+       - Add form validation and user feedback
+       - Test all user flows and edge cases
+    
+    5. Deployment Phase:
+       - Deploy the UI to Vercel
+       - Provide the URL of the deployed UI
+
+  Definition of Done:
+    - All necessary GraphQL operations are generated and validated
+    - UI component is fully functional
+    - Loading, error, and empty states are implemented
+    - UI is responsive and follows modern design patterns
+    - Code is clean, well-commented, and follows best practices
+    - All user interactions work smoothly with proper feedback
+    - UI is deployed to Vercel
+
+  File Structure:
+    - Operations: ~/Development/apollo-summit-2025/operations/<OPERATION_NAME>.graphql
+    - UI Component: ~/Development/apollo-summit-2025/src/components/<COMPONENT_NAME>.html
+
+extensions:
+  - type: "builtin"
+    name: "developer"
+    display_name: "Developer"
+    timeout: 600
+    bundled: true
+  - type: "stdio"
+    name: "apollomcp"
+    cmd: "npx"
+    args:
+      - "-y"
+      - "mcp-remote@latest"
+      - "http://127.0.0.1:5000/mcp"
+      - "--allow-http"
+    timeout: 300
+    description: "For validating, introspecting and searching GraphQL schemas"
+  - type: "stdio"
+    name: "vercel"
+    cmd: "node"
+    args:
+      - "/Users/rudra/Development/apollo-summit-2025/mcps/vercel/dist/index.js"
+    env_keys:
+      - VERCEL_TOKEN
+    timeout: 300
+    description: "For deploying the UI to Vercel"
+
+sub_recipes:
+  - name: "generate-operation"
+    path: "./generate-operation.yaml"
+
+prompt: "Build a complete UI for the following use case: {{ use_case }}"
+parameters:
+  - key: "use_case"
+    input_type: "string"
+    requirement: "required"
+    description: "The complete use case description for which to build the UI"
