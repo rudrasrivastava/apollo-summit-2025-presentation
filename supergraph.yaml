@@ -1,6 +1,34 @@
+federation_version: =2.12.0-preview.6
 subgraphs:
-  merchant-connector:
-    routing_url: http://ignore
+  locations:
+    routing_url: http://ignored
     schema:
-      file: subgraphs/merchant-connector.graphql
-federation_version: =2.11.0
+      file: subgraphs/locations.graphqls
+  merchants:
+    routing_url: http://ignored
+    schema:
+      file: subgraphs/merchants.graphqls
+  customers:
+    routing_url: http://ignored
+    schema:
+      file: subgraphs/customers.graphqls
+  payments:
+    routing_url: http://ignored
+    schema:
+      file: subgraphs/payments.graphqls
+  catalog:
+    routing_url: http://ignored
+    schema:
+      file: subgraphs/catalog.graphqls
+  employees:
+    routing_url: http://ignored
+    schema:
+      file: subgraphs/employees.graphqls
+  orders:
+    routing_url: http://ignored
+    schema:
+      file: subgraphs/orders.graphqls
+  vendors:
+    routing_url: http://ignored
+    schema:
+      file: subgraphs/vendors.graphqls

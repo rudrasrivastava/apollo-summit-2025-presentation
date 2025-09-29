@@ -16,3 +16,6 @@ headers:
         - insert:
             name: "Authorization"
             value: "Bearer ${env.AUTHORIZATION}"
+
+connectors:
+    preview_connect_v0_3: true

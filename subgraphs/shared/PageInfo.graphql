@@ -1,0 +1,14 @@
+"""
+Information about pagination in a connection.
+"""
+type PageInfo @shareable {
+  """
+  The cursor to use for fetching the next page.
+  """
+  cursor: String @shareable
+
+  """
+  Total count of items when requested.
+  """
+  count: Int @shareable
+}

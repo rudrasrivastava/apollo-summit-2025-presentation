@@ -1,0 +1,457 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+}
+
+"""
+Represents a location.
+"""
+type Location @key(fields: "id", resolvable: false) {
+  """
+  The ID of the location.
+  """
+  id: ID!
+}
+
+"""
+Represents a customer.
+"""
+type Customer @key(fields: "id", resolvable: false) {
+  """
+  The ID of the customer.
+  """
+  id: ID!
+}
+
+"""
+Represents a team member.
+"""
+type TeamMember @key(fields: "id", resolvable: false) {
+  """
+  The ID of the team member.
+  """
+  id: ID!
+}
+
+"""
+Represents a variation of a catalog item.
+"""
+type CatalogItemVariation @key(fields: "id", resolvable: false) {
+  """
+  The ID of the catalog item variation.
+  """
+  id: ID!
+}
+
+"""
+The status of the booking
+"""
+enum BookingStatus {
+  """
+  An unaccepted booking. It is visible to both sellers and customers.
+  """
+  PENDING
+  """
+  A customer-cancelled booking. It is visible to both the seller and the customer.
+  """
+  CANCELLED_BY_CUSTOMER
+  """
+  A seller-cancelled booking. It is visible to both the seller and the customer.
+  """
+  CANCELLED_BY_SELLER
+  """
+  A declined booking. It had once been pending, but was then declined by the seller.
+  """
+  DECLINED
+  """
+  An accepted booking agreed to or accepted by the seller.
+  """
+  ACCEPTED
+  """
+  A no-show booking. The booking was accepted at one time, but have now been marked as a no-show by
+  the seller because the client either missed the booking or cancelled it without enough notice.
+  """
+  NO_SHOW
+}
+
+"""
+Defines an appointment segment of a booking.
+"""
+type AppointmentSegment {
+  """
+  The time span in minutes of an appointment segment.
+  """
+  durationMinutes: Int
+  """
+  The ID of the CatalogItemVariation object representing the service booked in this segment.
+  """
+  serviceVariationId: String @inaccessible
+  """
+  The CatalogItemVariation representing the service booked in this segment.
+  """
+  serviceVariation: CatalogItemVariation
+  @connect(
+    source: "connect-v2"
+    id: "GetAppointmentSegmentServiceVariation"
+    http: { GET: "/catalog/object/{$this.serviceVariationId}" }
+    selection: """
+    $.object {
+      id
+    }
+    """
+  )
+  """
+  The ID of the TeamMember object representing the team member booked in this segment.
+  """
+  teamMemberId: String! @inaccessible
+  """
+  The TeamMember representing the team member booked in this segment.
+  """
+  teamMember: TeamMember!
+  @connect(
+    source: "connect-v2"
+    id: "GetAppointmentSegmentTeamMember"
+    http: { GET: "/team-members/{$this.teamMemberId}" }
+    selection: """
+    $.team_member {
+      id
+    }
+    """
+  )
+  """
+  The current version of the item variation representing the service booked in this segment.
+  """
+  serviceVariationVersion: Int
+  """
+  Time between the end of this segment and the beginning of the subsequent segment.
+  """
+  intermissionMinutes: Int
+  """
+  Whether the customer accepts any team member, instead of a specific one, to serve this segment.
+  """
+  anyTeamMember: Boolean
+  """
+  The IDs of the seller-accessible resources used for this appointment segment.
+  """
+  resourceIds: [String!]
+}
+
+"""
+Represents a postal address in a country.
+"""
+type Address @shareable {
+  """
+  The first line of the address.
+  Provides the address's most specific details, like street number, street name, and building name.
+  """
+  addressLine1: String
+
+  """
+  The second line of the address, if any.
+  """
+  addressLine2: String
+
+  """
+  The third line of the address, if any.
+  """
+  addressLine3: String
+
+  """
+  The city or town of the address.
+  """
+  locality: String
+
+  """
+  A civil region within the address's locality, if any.
+  """
+  sublocality: String
+
+  """
+  A civil region within the address's sublocality, if any.
+  """
+  sublocality2: String
+
+  """
+  A civil region within the address's sublocality_2, if any.
+  """
+  sublocality3: String
+
+  """
+  A civil entity within the address's country. In the US, this is the state.
+  """
+  administrativeDistrictLevel1: String
+
+  """
+  A civil entity within the address's administrative_district_level_1.
+  In the US, this is the county.
+  """
+  administrativeDistrictLevel2: String
+
+  """
+  A civil entity within the address's administrative_district_level_2, if any.
+  """
+  administrativeDistrictLevel3: String
+
+  """
+  The address's postal code.
+  """
+  postalCode: String
+
+  """
+  The address's country, in the two-letter format of ISO 3166. For example, US or FR.
+  """
+  country: String
+
+  """
+  Optional first name when it's representing recipient.
+  """
+  firstName: String
+
+  """
+  Optional last name when it's representing recipient.
+  """
+  lastName: String
+}
+
+"""
+Represents a booking as a time-bound service contract for a seller's staff member to provide a specified service
+at a given location to a requesting customer in one or more appointment segments.
+"""
+type Booking @key(fields: "id") @connect(
+  source: "connect-v2"
+  id: "RetrieveBookingEntity"
+  entity: true
+  http: { GET: "/bookings/{$this.id}" }
+  selection: """
+  $.booking {
+    id
+    version
+    status
+    createdAt: created_at
+    updatedAt: updated_at
+    startAt: start_at
+    locationId: location_id
+    customerId: customer_id
+    customerNote: customer_note
+    sellerNote: seller_note
+    appointmentSegments: appointment_segments {
+      durationMinutes: duration_minutes
+      serviceVariationId: service_variation_id
+      teamMemberId: team_member_id
+      serviceVariationVersion: service_variation_version
+      intermissionMinutes: intermission_minutes
+      anyTeamMember: any_team_member
+      resourceIds: resource_ids
+    }
+    transitionTimeMinutes: transition_time_minutes
+    allDay: all_day
+    locationType: location_type
+    source
+    address {
+      addressLine1: address_line_1
+      addressLine2: address_line_2
+      addressLine3: address_line_3
+      locality
+      sublocality
+      sublocality2: sublocality_2
+      sublocality3: sublocality_3
+      administrativeDistrictLevel1: administrative_district_level_1
+      administrativeDistrictLevel2: administrative_district_level_2
+      administrativeDistrictLevel3: administrative_district_level_3
+      postalCode: postal_code
+      country
+      firstName: first_name
+      lastName: last_name
+    }
+  }
+  """
+) {
+  """
+  A unique ID of this object representing a booking.
+  """
+  id: ID!
+  """
+  The revision number for the booking used for optimistic concurrency.
+  """
+  version: Int
+  """
+  The status of the booking, describing where the booking stands with respect to the booking state machine.
+  """
+  status: BookingStatus
+  """
+  The RFC 3339 timestamp specifying the creation time of this booking.
+  """
+  createdAt: String
+  """
+  The RFC 3339 timestamp specifying the most recent update time of this booking.
+  """
+  updatedAt: String
+  """
+  The RFC 3339 timestamp specifying the starting time of this booking.
+  """
+  startAt: String
+  """
+  The ID of the Location object representing the location where the booked service is provided.
+  """
+  locationId: String @inaccessible
+  """
+  The Location representing the location where the booked service is provided.
+  """
+  location: Location
+  @connect(
+    source: "connect-v2"
+    id: "GetBookingLocation"
+    http: { GET: "/locations/{$this.locationId}" }
+    selection: """
+    $.location {
+      id
+    }
+    """
+  )
+  """
+  The ID of the Customer object representing the customer receiving the booked service.
+  """
+  customerId: String @inaccessible
+  """
+  The Customer representing the customer receiving the booked service.
+  """
+  customer: Customer
+  @connect(
+    source: "connect-v2"
+    id: "GetBookingCustomer"
+    http: { GET: "/customers/{$this.customerId}" }
+    selection: """
+    $.customer {
+      id
+    }
+    """
+  )
+  """
+  The free-text field for the customer to supply notes about the booking.
+  """
+  customerNote: String
+  """
+  The free-text field for the seller to supply notes about the booking.
+  """
+  sellerNote: String
+  """
+  A list of appointment segments for this booking.
+  """
+  appointmentSegments: [AppointmentSegment!]
+  """
+  Additional time at the end of a booking.
+  """
+  transitionTimeMinutes: Int
+  """
+  Whether the booking is of a full business day.
+  """
+  allDay: Boolean
+  """
+  The type of location where the booking is held.
+  """
+  locationType: String
+  """
+  The source of the booking.
+  """
+  source: String
+  """
+  Stores a customer address if the location type is CUSTOMER_LOCATION.
+  """
+  address: Address
+}
+
+extend type Query {
+  """
+  Retrieves a booking by ID.
+  """
+  booking(
+    """
+    The ID of the Booking object representing the to-be-retrieved booking.
+    """
+    id: ID!
+  ): Booking
+    @connect(
+      source: "connect-v2"
+      id: "RetrieveBooking"
+      http: { GET: "/bookings/{$args.id}" }
+      selection: """
+      $.booking {
+        id
+        version
+        status
+        createdAt: created_at
+        updatedAt: updated_at
+        startAt: start_at
+        locationId: location_id
+        customerId: customer_id
+        customerNote: customer_note
+        sellerNote: seller_note
+        appointmentSegments: appointment_segments {
+          durationMinutes: duration_minutes
+          serviceVariationId: service_variation_id
+          teamMemberId: team_member_id
+          serviceVariationVersion: service_variation_version
+          intermissionMinutes: intermission_minutes
+          anyTeamMember: any_team_member
+          resourceIds: resource_ids
+        }
+        transitionTimeMinutes: transition_time_minutes
+        allDay: all_day
+        locationType: location_type
+        source
+        address {
+          addressLine1: address_line_1
+          addressLine2: address_line_2
+          addressLine3: address_line_3
+          locality
+          sublocality
+          sublocality2: sublocality_2
+          sublocality3: sublocality_3
+          administrativeDistrictLevel1: administrative_district_level_1
+          administrativeDistrictLevel2: administrative_district_level_2
+          administrativeDistrictLevel3: administrative_district_level_3
+          postalCode: postal_code
+          country
+          firstName: first_name
+          lastName: last_name
+        }
+      }
+      """
+    )
+}

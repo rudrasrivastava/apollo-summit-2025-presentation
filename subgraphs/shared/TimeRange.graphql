@@ -1,0 +1,15 @@
+"""
+Represents a generic time range. The start and end values are
+represented in RFC 3339 format.
+"""
+type TimeRange @shareable {
+  """
+  A datetime value in RFC 3339 format indicating when the time range starts.
+  """
+  startAt: String
+
+  """
+  A datetime value in RFC 3339 format indicating when the time range ends.
+  """
+  endAt: String
+}

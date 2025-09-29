@@ -1,0 +1,328 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+}
+
+type Query {
+  "Retrieves details of a single location."
+  location(
+    "The ID of the location to retrieve. Use 'main' to return the main location."
+    id: ID!
+  ): Location
+    @connect(
+      source: "connect-v2"
+      entity: true
+      http: { GET: "/locations/{$args.id}" }
+      selection: """
+      $.location {
+        id
+        name
+        address {
+          addressLine1: address_line_1
+          addressLine2: address_line_2
+          addressLine3: address_line_3
+          administrativeDistrictLevel1: administrative_district_level_1
+          administrativeDistrictLevel2: administrative_district_level_2
+          administrativeDistrictLevel3: administrative_district_level_3
+          country
+          firstName: first_name
+          lastName: last_name
+          locality
+          postalCode: postal_code
+          sublocality
+          sublocality2: sublocality_2
+          sublocality3: sublocality_3
+        }
+        timezone
+        capabilities
+        status
+        merchantId: merchant_id
+        createdAt: created_at
+        phoneNumber: phone_number
+        businessName: business_name
+        type
+        websiteUrl: website_url
+        businessEmail: business_email
+        description
+        twitterUsername: twitter_username
+        instagramUsername: instagram_username
+        facebookUrl: facebook_url
+        coordinates {
+          latitude
+          longitude
+        }
+        logoUrl: logo_url
+        posBackgroundUrl: pos_background_url
+        mcc
+        fullFormatLogoUrl: full_format_logo_url
+      }
+      """
+    )
+
+  "Lists all locations for the merchant."
+  locations: [Location!]!
+    @connect(
+      source: "connect-v2"
+      http: { GET: "/locations" }
+      selection: """
+      $.locations {
+        id
+        name
+        address {
+          addressLine1: address_line_1
+          addressLine2: address_line_2
+          addressLine3: address_line_3
+          administrativeDistrictLevel1: administrative_district_level_1
+          administrativeDistrictLevel2: administrative_district_level_2
+          administrativeDistrictLevel3: administrative_district_level_3
+          country
+          firstName: first_name
+          lastName: last_name
+          locality
+          postalCode: postal_code
+          sublocality
+          sublocality2: sublocality_2
+          sublocality3: sublocality_3
+        }
+        timezone
+        capabilities
+        status
+        merchantId: merchant_id
+        createdAt: created_at
+        phoneNumber: phone_number
+        businessName: business_name
+        type
+        websiteUrl: website_url
+        businessEmail: business_email
+        description
+        twitterUsername: twitter_username
+        instagramUsername: instagram_username
+        facebookUrl: facebook_url
+        coordinates {
+          latitude
+          longitude
+        }
+        logoUrl: logo_url
+        posBackgroundUrl: pos_background_url
+        mcc
+        fullFormatLogoUrl: full_format_logo_url
+      }
+      """
+    )
+}
+
+"""
+Represents a postal address in a country.
+"""
+type Address @shareable {
+  """
+  The first line of the address.
+  Provides the address's most specific details, like street number, street name, and building name.
+  """
+  addressLine1: String
+
+  """
+  The second line of the address, if any.
+  """
+  addressLine2: String
+
+  """
+  The third line of the address, if any.
+  """
+  addressLine3: String
+
+  """
+  The city or town of the address.
+  """
+  locality: String
+
+  """
+  A civil region within the address's locality, if any.
+  """
+  sublocality: String
+
+  """
+  A civil region within the address's sublocality, if any.
+  """
+  sublocality2: String
+
+  """
+  A civil region within the address's sublocality_2, if any.
+  """
+  sublocality3: String
+
+  """
+  A civil entity within the address's country. In the US, this is the state.
+  """
+  administrativeDistrictLevel1: String
+
+  """
+  A civil entity within the address's administrative_district_level_1.
+  In the US, this is the county.
+  """
+  administrativeDistrictLevel2: String
+
+  """
+  A civil entity within the address's administrative_district_level_2, if any.
+  """
+  administrativeDistrictLevel3: String
+
+  """
+  The address's postal code.
+  """
+  postalCode: String
+
+  """
+  The address's country, in the two-letter format of ISO 3166. For example, US or FR.
+  """
+  country: String
+
+  """
+  Optional first name when it's representing recipient.
+  """
+  firstName: String
+
+  """
+  Optional last name when it's representing recipient.
+  """
+  lastName: String
+}
+
+"Represents a merchant in the Square system."
+type Merchant @key(fields: "id", resolvable: false) {
+  "The merchant's unique identifier."
+  id: ID!
+}
+
+"Represents a physical or mobile business location."
+type Location @key(fields: "id") {
+  "The location's unique ID."
+  id: ID!
+
+  "The location's name."
+  name: String!
+
+  "The location's physical address."
+  address: Address
+
+  "The timezone of the location."
+  timezone: String!
+
+  "The capabilities enabled for this location."
+  capabilities: [String!]!
+
+  "The status of the location."
+  status: String!
+
+  "The ID of the merchant that owns this location."
+  merchantId: ID! @inaccessible
+
+  "The merchant that owns this location."
+  merchant: Merchant
+    @connect(
+      source: "connect-v2"
+      http: { GET: "/merchants/{$this.merchantId}" }
+      selection: """
+      $.merchant {
+        id
+      }
+      """
+    )
+
+  "The time when the location was created, in RFC 3339 format."
+  createdAt: String!
+
+  "The location's phone number."
+  phoneNumber: String
+
+  "The name of the location's overall business."
+  businessName: String
+
+  "The type of the location (PHYSICAL or MOBILE)."
+  type: LocationType
+
+  "The website URL of the location."
+  websiteUrl: String
+
+  "The email address of the location."
+  businessEmail: String
+
+  "The description of the location."
+  description: String
+
+  "The Twitter username of the location without the '@' symbol."
+  twitterUsername: String
+
+  "The Instagram username of the location without the '@' symbol."
+  instagramUsername: String
+
+  "The Facebook profile URL of the location."
+  facebookUrl: String
+
+  "The physical coordinates of the location."
+  coordinates: Coordinates
+
+  "The URL of the logo image for the location."
+  logoUrl: String
+
+  "The URL of the Point of Sale background image for the location."
+  posBackgroundUrl: String
+
+  "The merchant category code (MCC) of the location."
+  mcc: String
+
+  "The URL of a full-format logo image for the location."
+  fullFormatLogoUrl: String
+}
+
+"The type of a business location."
+enum LocationType {
+  "A place of business with a physical location."
+  PHYSICAL
+  "A place of business that is mobile, such as a food truck or online store."
+  MOBILE
+}
+
+"Represents latitude and longitude coordinates."
+type Coordinates {
+  "The latitude of the coordinates."
+  latitude: Float!
+  "The longitude of the coordinates."
+  longitude: Float!
+}

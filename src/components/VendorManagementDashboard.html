@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-truck text-blue-600 text-2xl mr-3"></i>
+                    <h1 class="text-xl font-semibold text-gray-900">Vendor Management Dashboard</h1>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="pulse-dot w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span class="text-sm text-gray-600">Connected</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Get Vendor Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center mb-6">
+                    <i class="fas fa-search text-blue-600 text-xl mr-3"></i>
+                    <h2 class="text-lg font-semibold text-gray-900">Retrieve Vendor</h2>
+                </div>
+                
+                <form id="getVendorForm" class="space-y-4">
+                    <div>
+                        <label for="vendorId" class="block text-sm font-medium text-gray-700 mb-2">
+                            Vendor ID
+                        </label>
+                        <input
+                            type="text"
+                            id="vendorId"
+                            name="vendorId"
+                            placeholder="Enter vendor ID..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            required
+                        >
+                    </div>
+                    
+                    <button
+                        type="submit"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 flex items-center justify-center"
+                        id="getVendorBtn"
+                    >
+                        <i class="fas fa-search mr-2"></i>
+                        Get Vendor
+                    </button>
+                </form>
+                
+                <!-- Get Vendor Results -->
+                <div id="getVendorResults" class="mt-6 hidden">
+                    <h3 class="text-md font-medium text-gray-900 mb-3">Vendor Details</h3>
+                    <div id="vendorDetails" class="bg-gray-50 rounded-lg p-4"></div>
+                </div>
+                
+                <!-- Get Vendor Error -->
+                <div id="getVendorError" class="mt-4 hidden">
+                    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                        <div class="flex">
+                            <i class="fas fa-exclamation-circle text-red-400 mr-2 mt-0.5"></i>
+                            <div class="text-sm text-red-700" id="getVendorErrorMessage"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Vendor Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center mb-6">
+                    <i class="fas fa-plus-circle text-green-600 text-xl mr-3"></i>
+                    <h2 class="text-lg font-semibold text-gray-900">Create New Vendor</h2>
+                </div>
+                
+                <form id="createVendorForm" class="space-y-4">
+                    <div>
+                        <label for="vendorName" class="block text-sm font-medium text-gray-700 mb-2">
+                            Vendor Name *
+                        </label>
+                        <input
+                            type="text"
+                            id="vendorName"
+                            name="vendorName"
+                            placeholder="Enter vendor name..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            required
+                        >
+                    </div>
+                    
+                    <div>
+                        <label for="vendorStatus" class="block text-sm font-medium text-gray-700 mb-2">
+                            Status
+                        </label>
+                        <select
+                            id="vendorStatus"
+                            name="vendorStatus"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        >
+                            <option value="ACTIVE">Active</option>
+                            <option value="INACTIVE">Inactive</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="idempotencyKey" class="block text-sm font-medium text-gray-700 mb-2">
+                            Idempotency Key (Optional)
+                        </label>
+                        <input
+                            type="text"
+                            id="idempotencyKey"
+                            name="idempotencyKey"
+                            placeholder="Enter unique key for duplicate prevention..."
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        >
+                    </div>
+                    
+                    <button
+                        type="submit"
+                        class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-200 flex items-center justify-center"
+                        id="createVendorBtn"
+                    >
+                        <i class="fas fa-plus mr-2"></i>
+                        Create Vendor
+                    </button>
+                </form>
+                
+                <!-- Create Vendor Success -->
+                <div id="createVendorSuccess" class="mt-6 hidden">
+                    <div class="bg-green-50 border border-green-200 rounded-md p-4">
+                        <div class="flex">
+                            <i class="fas fa-check-circle text-green-400 mr-2 mt-0.5"></i>
+                            <div>
+                                <h3 class="text-sm font-medium text-green-800">Vendor Created Successfully!</h3>
+                                <div id="createdVendorDetails" class="mt-2 text-sm text-green-700"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Create Vendor Error -->
+                <div id="createVendorError" class="mt-4 hidden">
+                    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                        <div class="flex">
+                            <i class="fas fa-exclamation-circle text-red-400 mr-2 mt-0.5"></i>
+                            <div class="text-sm text-red-700" id="createVendorErrorMessage"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity Section -->
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center mb-6">
+                <i class="fas fa-history text-purple-600 text-xl mr-3"></i>
+                <h2 class="text-lg font-semibold text-gray-900">Recent Activity</h2>
+            </div>
+            <div id="recentActivity" class="space-y-3">
+                <p class="text-gray-500 text-sm">No recent activity</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // GraphQL endpoint
+        const GRAPHQL_ENDPOINT = 'http://localhost:4000';
+        
+        // GraphQL Operations
+        const GET_VENDOR_QUERY = `
+            query GetVendor($vendorId: ID!) {
+                vendor(id: $vendorId) {
+                    id
+                    name
+                    status
+                    createdAt
+                    updatedAt
+                    version
+                }
+            }
+        `;
+        
+        const CREATE_VENDOR_MUTATION = `
+            mutation CreateVendor($input: VendorInput!, $idempotencyKey: String) {
+                createVendor(vendor: $input, idempotencyKey: $idempotencyKey) {
+                    id
+                    name
+                    status
+                    createdAt
+                    updatedAt
+                    version
+                }
+            }
+        `;
+        
+        // Utility functions
+        function showLoading(buttonId) {
+            const button = document.getElementById(buttonId);
+            const originalContent = button.innerHTML;
+            button.innerHTML = '<div class="loading-spinner mr-2"></div>Loading...';
+            button.disabled = true;
+            return originalContent;
+        }
+        
+        function hideLoading(buttonId, originalContent) {
+            const button = document.getElementById(buttonId);
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        }
+        
+        function hideAllMessages() {
+            document.getElementById('getVendorResults').classList.add('hidden');
+            document.getElementById('getVendorError').classList.add('hidden');
+            document.getElementById('createVendorSuccess').classList.add('hidden');
+            document.getElementById('createVendorError').classList.add('hidden');
+        }
+        
+        function addToRecentActivity(message, type = 'info') {
+            const activityContainer = document.getElementById('recentActivity');
+            const timestamp = new Date().toLocaleTimeString();
+            const iconClass = type === 'success' ? 'fas fa-check-circle text-green-500' : 
+                             type === 'error' ? 'fas fa-exclamation-circle text-red-500' : 
+                             'fas fa-info-circle text-blue-500';
+            
+            const activityItem = document.createElement('div');
+            activityItem.className = 'flex items-start space-x-3 p-3 bg-gray-50 rounded-lg fade-in';
+            activityItem.innerHTML = `
+                <i class="${iconClass} mt-0.5"></i>
+                <div class="flex-1">
+                    <p class="text-sm text-gray-900">${message}</p>
+                    <p class="text-xs text-gray-500">${timestamp}</p>
+                </div>
+            `;
+            
+            // Remove "No recent activity" message if it exists
+            const noActivity = activityContainer.querySelector('p.text-gray-500');
+            if (noActivity) {
+                noActivity.remove();
+            }
+            
+            activityContainer.insertBefore(activityItem, activityContainer.firstChild);
+            
+            // Keep only the last 5 activities
+            const activities = activityContainer.querySelectorAll('.fade-in');
+            if (activities.length > 5) {
+                activities[activities.length - 1].remove();
+            }
+        }
+        
+        async function executeGraphQL(query, variables = {}) {
+            try {
+                const response = await fetch(GRAPHQL_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query,
+                        variables
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.errors) {
+                    throw new Error(result.errors[0].message);
+                }
+                
+                return result.data;
+            } catch (error) {
+                console.error('GraphQL Error:', error);
+                throw error;
+            }
+        }
+        
+        function formatVendorDetails(vendor) {
+            const statusBadge = vendor.status === 'ACTIVE' 
+                ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>'
+                : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Inactive</span>';
+            
+            return `
+                <div class="space-y-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-medium text-gray-900">${vendor.name || 'N/A'}</h4>
+                            <p class="text-sm text-gray-500">ID: ${vendor.id}</p>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="font-medium text-gray-700">Created:</span>
+                            <p class="text-gray-600">${vendor.createdAt ? new Date(vendor.createdAt).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">Updated:</span>
+                            <p class="text-gray-600">${vendor.updatedAt ? new Date(vendor.updatedAt).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">Version:</span>
+                            <p class="text-gray-600">${vendor.version || 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Get Vendor Form Handler
+        document.getElementById('getVendorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAllMessages();
+            
+            const vendorId = document.getElementById('vendorId').value.trim();
+            if (!vendorId) return;
+            
+            const originalContent = showLoading('getVendorBtn');
+            
+            try {
+                const data = await executeGraphQL(GET_VENDOR_QUERY, { vendorId });
+                
+                if (data.vendor) {
+                    document.getElementById('vendorDetails').innerHTML = formatVendorDetails(data.vendor);
+                    document.getElementById('getVendorResults').classList.remove('hidden');
+                    addToRecentActivity(`Retrieved vendor: ${data.vendor.name} (ID: ${data.vendor.id})`, 'success');
+                } else {
+                    throw new Error('Vendor not found');
+                }
+            } catch (error) {
+                document.getElementById('getVendorErrorMessage').textContent = error.message;
+                document.getElementById('getVendorError').classList.remove('hidden');
+                addToRecentActivity(`Failed to retrieve vendor: ${error.message}`, 'error');
+            } finally {
+                hideLoading('getVendorBtn', originalContent);
+            }
+        });
+        
+        // Create Vendor Form Handler
+        document.getElementById('createVendorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAllMessages();
+            
+            const vendorName = document.getElementById('vendorName').value.trim();
+            const vendorStatus = document.getElementById('vendorStatus').value;
+            const idempotencyKey = document.getElementById('idempotencyKey').value.trim();
+            
+            if (!vendorName) return;
+            
+            const originalContent = showLoading('createVendorBtn');
+            
+            try {
+                const variables = {
+                    input: {
+                        name: vendorName,
+                        status: vendorStatus
+                    }
+                };
+                
+                if (idempotencyKey) {
+                    variables.idempotencyKey = idempotencyKey;
+                }
+                
+                const data = await executeGraphQL(CREATE_VENDOR_MUTATION, variables);
+                
+                if (data.createVendor) {
+                    const vendor = data.createVendor;
+                    document.getElementById('createdVendorDetails').innerHTML = `
+                        <strong>Name:</strong> ${vendor.name}<br>
+                        <strong>ID:</strong> ${vendor.id}<br>
+                        <strong>Status:</strong> ${vendor.status}
+                    `;
+                    document.getElementById('createVendorSuccess').classList.remove('hidden');
+                    document.getElementById('createVendorForm').reset();
+                    addToRecentActivity(`Created new vendor: ${vendor.name} (ID: ${vendor.id})`, 'success');
+                } else {
+                    throw new Error('Failed to create vendor');
+                }
+            } catch (error) {
+                document.getElementById('createVendorErrorMessage').textContent = error.message;
+                document.getElementById('createVendorError').classList.remove('hidden');
+                addToRecentActivity(`Failed to create vendor: ${error.message}`, 'error');
+            } finally {
+                hideLoading('createVendorBtn', originalContent);
+            }
+        });
+        
+        // Generate random idempotency key helper
+        document.getElementById('idempotencyKey').addEventListener('focus', function() {
+            if (!this.value) {
+                this.value = 'vendor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+        });
+        
+        // Initialize
+        addToRecentActivity('Vendor Management Dashboard initialized', 'info');
+    </script>
+</body>
+</html>

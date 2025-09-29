@@ -1,0 +1,76 @@
+"""
+Represents a postal address in a country.
+"""
+type Address @shareable {
+  """
+  The first line of the address.
+  Provides the address's most specific details, like street number, street name, and building name.
+  """
+  addressLine1: String
+
+  """
+  The second line of the address, if any.
+  """
+  addressLine2: String
+
+  """
+  The third line of the address, if any.
+  """
+  addressLine3: String
+
+  """
+  The city or town of the address.
+  """
+  locality: String
+
+  """
+  A civil region within the address's locality, if any.
+  """
+  sublocality: String
+
+  """
+  A civil region within the address's sublocality, if any.
+  """
+  sublocality2: String
+
+  """
+  A civil region within the address's sublocality_2, if any.
+  """
+  sublocality3: String
+
+  """
+  A civil entity within the address's country. In the US, this is the state.
+  """
+  administrativeDistrictLevel1: String
+
+  """
+  A civil entity within the address's administrative_district_level_1.
+  In the US, this is the county.
+  """
+  administrativeDistrictLevel2: String
+
+  """
+  A civil entity within the address's administrative_district_level_2, if any.
+  """
+  administrativeDistrictLevel3: String
+
+  """
+  The address's postal code.
+  """
+  postalCode: String
+
+  """
+  The address's country, in the two-letter format of ISO 3166. For example, US or FR.
+  """
+  country: String
+
+  """
+  Optional first name when it's representing recipient.
+  """
+  firstName: String
+
+  """
+  Optional last name when it's representing recipient.
+  """
+  lastName: String
+}

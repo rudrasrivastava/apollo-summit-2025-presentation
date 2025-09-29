@@ -1,0 +1,177 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+  mutation: Mutation
+}
+
+input VendorInput {
+  """
+  The name of the Vendor.
+  """
+  name: String!
+
+  """
+  The status of the Vendor.
+  """
+  status: VendorStatus
+}
+
+
+type Mutation {
+  """
+  Creates a new vendor
+  """
+  createVendor(
+    """
+    The vendor data to create
+    """
+    vendor: VendorInput!
+    """
+    A unique string that identifies this CreateVendor request.
+    Keys can be any valid string but must be unique for every request.
+    """
+    idempotencyKey: String
+  ): Vendor
+    @connect(
+      source: "connect-v2"
+      id: "CreateVendor"
+      http: { 
+        POST: "/vendors/create"
+        body: """
+        $({
+          "vendor": $args.vendor,
+          "idempotency_key": $args.idempotencyKey
+        })
+        """
+      }
+      selection: """
+      $.vendor {
+        id
+        name
+        version
+        status
+        createdAt: created_at
+        updatedAt: updated_at
+      }
+      """
+    )
+
+  ignoreMe: ID
+    @connect(http: { POST: "https://never" }, selection: "$")
+    @inaccessible
+    @shareable
+}
+
+"""
+Represents a supplier to a seller.
+"""
+type Vendor @key(fields: "id") {
+  """
+  A unique Square-generated ID for the Vendor.
+  """
+  id: ID!
+
+  """
+  An RFC 3339-formatted timestamp that indicates when the Vendor was created.
+  """
+  createdAt: String!
+
+  """
+  An RFC 3339-formatted timestamp that indicates when the Vendor was last updated.
+  """
+  updatedAt: String!
+
+  """
+  The name of the Vendor.
+  """
+  name: String
+
+  """
+  The version of the Vendor.
+  """
+  version: Int!
+
+  """
+  The status of the Vendor.
+  """
+  status: VendorStatus
+}
+
+"""
+The status of the Vendor, whether a Vendor is active or inactive.
+"""
+enum VendorStatus {
+  """
+  Vendor is active and can receive purchase orders.
+  """
+  ACTIVE
+
+  """
+  Vendor is inactive and cannot receive purchase orders.
+  """
+  INACTIVE
+}
+
+type Query {
+  """
+  Retrieves a vendor by ID
+  """
+  vendor(
+    """
+    ID of the Vendor to retrieve
+    """
+    id: ID!
+  ): Vendor
+    @connect(
+      source: "connect-v2"
+      id: "RetrieveVendor"
+      entity: true
+      http: { GET: "vendors/{$args.id}" }
+      selection: """
+      $.vendor {
+        id
+        name
+        createdAt: created_at
+        updatedAt: updated_at
+        version
+        status
+      }
+      """
+    )
+}

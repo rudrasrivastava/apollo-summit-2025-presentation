@@ -1,0 +1,29 @@
+{
+  "name": "apollo-mcp-ui-server",
+  "version": "1.0.0",
+  "description": "MCP-UI server for Apollo GraphQL operations dashboard",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@mcp-ui/server": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "ui",
+    "graphql",
+    "apollo",
+    "dashboard"
+  ],
+  "author": "Apollo Summit 2025",
+  "license": "MIT"
+}
