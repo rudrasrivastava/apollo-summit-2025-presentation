@@ -1,0 +1,332 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+  mutation: Mutation
+}
+
+type Mutation {
+  ignoreMe: ID
+    @connect(http: { POST: "https://never" }, selection: "$")
+    @inaccessible
+    @shareable
+}
+
+"""
+Represents a postal address in a country.
+"""
+type Address @shareable {
+  """
+  The first line of the address.
+  Provides the address's most specific details, like street number, street name, and building name.
+  """
+  addressLine1: String
+
+  """
+  The second line of the address, if any.
+  """
+  addressLine2: String
+
+  """
+  The third line of the address, if any.
+  """
+  addressLine3: String
+
+  """
+  The city or town of the address.
+  """
+  locality: String
+
+  """
+  A civil region within the address's locality, if any.
+  """
+  sublocality: String
+
+  """
+  A civil region within the address's sublocality, if any.
+  """
+  sublocality2: String
+
+  """
+  A civil region within the address's sublocality_2, if any.
+  """
+  sublocality3: String
+
+  """
+  A civil entity within the address's country. In the US, this is the state.
+  """
+  administrativeDistrictLevel1: String
+
+  """
+  A civil entity within the address's administrative_district_level_1.
+  In the US, this is the county.
+  """
+  administrativeDistrictLevel2: String
+
+  """
+  A civil entity within the address's administrative_district_level_2, if any.
+  """
+  administrativeDistrictLevel3: String
+
+  """
+  The address's postal code.
+  """
+  postalCode: String
+
+  """
+  The address's country, in the two-letter format of ISO 3166. For example, US or FR.
+  """
+  country: String
+
+  """
+  Optional first name when it's representing recipient.
+  """
+  firstName: String
+
+  """
+  Optional last name when it's representing recipient.
+  """
+  lastName: String
+}
+
+"""
+Represents a supplier to a seller.
+"""
+type Vendor @key(fields: "id") {
+  """
+  A unique Square-generated ID for the Vendor.
+  """
+  id: ID!
+
+  """
+  An RFC 3339-formatted timestamp that indicates when the Vendor was created.
+  """
+  createdAt: String!
+
+  """
+  An RFC 3339-formatted timestamp that indicates when the Vendor was last updated.
+  """
+  updatedAt: String!
+
+  """
+  The name of the Vendor.
+  """
+  name: String
+
+  """
+  The address of the Vendor.
+  """
+  address: Address
+
+  """
+  The contacts of the Vendor.
+  """
+  contacts: [VendorContact!]
+
+  """
+  The account number of the Vendor.
+  """
+  accountNumber: String
+
+  """
+  A note detailing information about the Vendor.
+  """
+  note: String
+
+  """
+  The version of the Vendor.
+  """
+  version: Int!
+
+  """
+  The status of the Vendor.
+  """
+  status: VendorStatus
+}
+
+"""
+Represents a contact of a Vendor.
+"""
+type VendorContact {
+  """
+  A unique Square-generated ID for the VendorContact.
+  """
+  id: ID!
+
+  """
+  The name of the VendorContact.
+  """
+  name: String
+
+  """
+  The email address of the VendorContact.
+  """
+  emailAddress: String
+
+  """
+  The phone number of the VendorContact.
+  """
+  phoneNumber: String
+
+  """
+  The state of the VendorContact.
+  """
+  removed: Boolean
+
+  """
+  The ordinal of the VendorContact.
+  """
+  ordinal: Int!
+}
+
+"""
+The status of the Vendor, whether a Vendor is active or inactive.
+"""
+enum VendorStatus {
+  """
+  Vendor is active and can receive purchase orders.
+  """
+  ACTIVE
+
+  """
+  Vendor is inactive and cannot receive purchase orders.
+  """
+  INACTIVE
+}
+
+"""
+Connection type for Vendors when using cursor-based pagination
+"""
+type VendorConnection {
+  """
+  The list of vendors
+  """
+  nodes: [Vendor!]!
+
+  """
+  Pagination cursor for the next page of results
+  """
+  cursor: String
+}
+
+type Query {
+  """
+  Retrieves a vendor by ID
+  """
+  vendor(
+    """
+    ID of the Vendor to retrieve
+    """
+    id: ID!
+  ): Vendor
+    @connect(
+      source: "connect-v2"
+      id: "RetrieveVendor"
+      entity: true
+      http: { GET: "/v2/vendors/{$args.id}" }
+      selection: """
+      $.vendor {
+        id
+        name
+        createdAt: created_at
+        updatedAt: updated_at
+        accountNumber: account_number
+        address
+        contacts
+        note
+        version
+        status
+      }
+      """
+    )
+
+  """
+  Search for vendors
+  """
+  vendors(
+    """
+    Pagination cursor from a previous response
+    """
+    cursor: String
+  ): VendorConnection
+    @connect(
+      source: "connect-v2"
+      id: "SearchVendors"
+      http: { 
+        GET: "/v2/vendors/search"
+        queryParams: """
+          cursor: $args.cursor
+        """
+      }
+      selection: """
+      $({
+        nodes: $.vendors
+        cursor: $.cursor
+      }) {
+        nodes {
+          id
+          name
+          createdAt: created_at
+          updatedAt: updated_at
+          accountNumber: account_number
+          address {
+            addressLine1: address_line_1
+            addressLine2: address_line_2
+            addressLine3: address_line_3
+            locality
+            sublocality
+            sublocality2: sublocality_2
+            sublocality3: sublocality_3
+            administrativeDistrictLevel1: administrative_district_level_1
+            administrativeDistrictLevel2: administrative_district_level_2
+            administrativeDistrictLevel3: administrative_district_level_3
+            postalCode: postal_code
+            country
+            firstName: first_name
+            lastName: last_name
+          }
+          contacts
+          note
+          version
+          status
+        }
+        cursor
+      }
+      """
+    )
+}

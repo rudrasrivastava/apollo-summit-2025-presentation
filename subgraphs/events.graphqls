@@ -1,0 +1,195 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+}
+
+type Query {
+  "Search for Square API events that occur within a 28-day timeframe."
+  searchEvents(
+    "The cursor returned in the previous response (for retrieving the next page)."
+    cursor: String
+  ): EventConnection!
+    @connect(
+      source: "connect-v2"
+      id: "SearchEvents"
+      http: { 
+        POST: "/events"
+        queryParams: """
+          cursor: $args.cursor
+        """
+      }
+      selection: """
+        $({ nodes: $.events }) {
+          nodes {
+            merchantId: merchant_id
+            locationId: location_id
+            type
+            eventId: event_id
+            createdAt: created_at
+            data {
+              type
+              id
+              deleted
+              object
+            }
+          }
+          pageInfo: $({
+            cursor: $.cursor,
+            metadata: $.metadata
+          }) {
+            cursor
+            metadata {
+              eventId: event_id
+              apiVersion: api_version
+            }
+          }
+        }
+      """
+    )
+}
+
+"Connection type for Events"
+type EventConnection {
+  "A list of Event objects"
+  nodes: [Event!]!
+  "Information for pagination"
+  pageInfo: EventPageInfo!
+}
+
+"Page information for Event pagination"
+type EventPageInfo {
+  "Cursor to use in the next request to fetch the next page"
+  cursor: String
+  "Metadata about events"
+  metadata: [EventMetadata!]
+}
+
+"An event that occurred in the Square API"
+type Event {
+  "The ID of the target merchant associated with the event"
+  merchantId: String @inaccessible
+  "The merchant associated with the event"
+  merchant: Merchant @connect(
+    source: "connect-v2"
+    id: "RetrieveMerchant"
+    http: { GET: "/merchants/{$this.merchantId}" }
+    selection: """
+      $.merchant {
+        id
+      }
+    """
+  )
+  "The ID of the target location associated with the event"
+  locationId: String @inaccessible
+  "The location associated with the event"
+  location: Location @connect(
+    source: "connect-v2"
+    id: "RetrieveLocation"
+    http: { GET: "/locations/{$this.locationId}" }
+    selection: """
+      $.location {
+        id
+      }
+    """
+  )
+  "The type of event this represents"
+  type: String
+  "A unique ID for the event"
+  eventId: String!
+  "Timestamp of when the event was created, in RFC 3339 format"
+  createdAt: String!
+  "The data associated with the event"
+  data: EventData
+}
+
+"A merchant in the Square API"
+type Merchant @key(fields: "id", resolvable: false) {
+  "The unique ID of the merchant"
+  id: ID!
+}
+
+"A location in the Square API"
+type Location @key(fields: "id", resolvable: false) {
+  "The unique ID of the location"
+  id: ID!
+}
+
+"Contains metadata about a particular event"
+type EventMetadata {
+  "A unique ID for the event"
+  eventId: String @inaccessible
+  "The event this metadata is for"
+  event: Event @connect(
+    source: "connect-v2"
+    id: "GetEvent"
+    http: { GET: "/events/{$this.eventId}" }
+    selection: """
+      $.event {
+        eventId: event_id
+        merchantId: merchant_id
+        locationId: location_id
+        type
+        createdAt: created_at
+        data {
+          type
+          id
+          deleted
+          object
+        }
+      }
+    """
+  )
+
+  "The API version of the event"
+  apiVersion: String
+}
+"The data associated with an event"
+type EventData {
+  "The name of the affected object's type"
+  type: String
+  "The ID of the affected object"
+  id: String!
+  "True if the affected object has been deleted"
+  deleted: Boolean
+  "An object containing fields and values relevant to the event"
+  object: JSON
+}
+
+"Custom scalar type for JSON objects"
+scalar JSON

@@ -1,0 +1,513 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareup.com/v2"
+      headers: [{ name: "Accept", value: "application/json" }, { name: "Authorization", from: "Authorization" }]
+    }
+  )
+
+"""
+Information about pagination in a connection.
+"""
+type PageInfo @shareable {
+  """
+  The cursor to use for fetching the next page.
+  """
+  cursor: String @shareable
+}
+
+"""
+Represents an amount of money. Money fields can be signed or unsigned.
+Fields that do not explicitly define whether they are signed or unsigned are
+considered unsigned and can only hold positive amounts. For signed fields, the
+sign of the value indicates the purpose of the money transfer.
+"""
+type Money @shareable {
+  """
+  The amount of money, in the smallest denomination of the currency.
+  For example, when currency is USD, amount is in cents.
+  Monetary amounts can be positive or negative.
+  """
+  amount: Int
+
+  """
+  The type of currency, in ISO 4217 format.
+  For example, the currency code for US dollars is USD.
+  """
+  currency: String
+}
+
+"""
+The status of a payout.
+"""
+enum PayoutStatus {
+  """
+  Indicates that the payout was successfully sent to the banking destination.
+  """
+  SENT
+
+  """
+  Indicates that the payout was rejected by the banking destination.
+  """
+  FAILED
+
+  """
+  Indicates that the payout has successfully completed.
+  """
+  PAID
+}
+
+"""
+The type of payout.
+"""
+enum PayoutType {
+  """
+  Payouts that include a list of payout entries that can be considered settled.
+  """
+  BATCH
+
+  """
+  Payouts that do not have any payout entries associated with them and will
+  show up as one of the payout entries in a future BATCH payout.
+  """
+  SIMPLE
+}
+
+"""
+The type of payout fee.
+"""
+enum PayoutFeeType {
+  """
+  Fee type associated with transfers.
+  """
+  TRANSFER_FEE
+
+  """
+  Taxes associated with the transfer fee.
+  """
+  TAX_ON_TRANSFER_FEE
+}
+
+"""
+The type of destination for a payout.
+"""
+enum DestinationType {
+  """
+  An external bank account outside of Square.
+  """
+  BANK_ACCOUNT
+
+  """
+  An external card outside of Square used for the transfer.
+  """
+  CARD
+
+  """
+  Square balance.
+  """
+  SQUARE_BALANCE
+
+  """
+  Square Checking or Savings account (US), Square Card (CA).
+  """
+  SQUARE_STORED_BALANCE
+}
+
+"""
+Information about the destination against which the payout was made.
+"""
+type Destination {
+  """
+  Type of the destination such as a bank account or debit card.
+  """
+  type: DestinationType
+
+  """
+  Square issued unique ID (also known as the instrument ID) associated with this destination.
+  """
+  id: String!
+}
+
+"""
+Represents a payout fee that can incur as part of a payout.
+"""
+type PayoutFee {
+  """
+  The money amount of the payout fee.
+  """
+  amountMoney: Money
+
+  """
+  The timestamp of when the fee takes effect, in RFC 3339 format.
+  """
+  effectiveAt: String
+
+  """
+  The type of fee assessed as part of the payout.
+  """
+  type: PayoutFeeType
+}
+
+"""
+Minimal Location entity for federation.
+"""
+type Location @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+"""
+An accounting of the amount owed the seller and record of the actual transfer to their
+external bank account or to the Square balance.
+"""
+type Payout @key(fields: "id") {
+  """
+  A unique ID for the payout.
+  """
+  id: ID!
+
+  """
+  Indicates the payout status.
+  """
+  status: PayoutStatus
+
+  """
+  The ID of the location associated with the payout.
+  """
+  locationId: ID! @inaccessible
+
+  """
+  The location associated with the payout.
+  """
+  location: Location @connect(source: "connect-v2" id: "GetLocation" http: { GET: "/locations/{$this.locationId}" } selection: "$.location { id }")
+
+  """
+  The timestamp of when the payout was created and submitted for deposit to the seller's banking destination.
+  """
+  createdAt: String
+
+  """
+  The timestamp of when the payout was last updated.
+  """
+  updatedAt: String
+
+  """
+  The amount of money involved in the payout. A positive amount indicates a deposit, 
+  and a negative amount indicates a withdrawal. This amount is never zero.
+  """
+  amountMoney: Money
+
+  """
+  Information about the banking destination against which the payout was made.
+  """
+  destination: Destination
+
+  """
+  The version number, which is incremented each time an update is made to this payout record.
+  """
+  version: Int
+
+  """
+  Indicates the payout type.
+  """
+  type: PayoutType
+
+  """
+  A list of transfer fees and any taxes on the fees assessed by Square for this payout.
+  """
+  payoutFee: [PayoutFee!]
+
+  """
+  The calendar date when the payout is due to arrive in the seller's banking destination.
+  """
+  arrivalDate: String
+
+  """
+  A unique ID that might also appear on the seller's bank statement.
+  """
+  endToEndId: String
+
+  """
+  The entries associated with this payout.
+  """
+  entries(
+    """
+    The order in which payout entries are listed.
+    """
+    sortOrder: String
+
+    """
+    A pagination cursor returned by a previous call to this endpoint.
+    """
+    cursor: String
+
+    """
+    The maximum number of results to be returned in a single page.
+    """
+    limit: Int
+  ): PayoutEntryConnection! @connect(
+    source: "connect-v2"
+    id: "ListPayoutEntries"
+    http: { 
+      GET: "/payouts/{$this.id}/payout-entries"
+      queryParams: """
+        cursor: $args.cursor
+        limit: $args.limit
+        sort_order: $args.sortOrder
+      """
+    }
+    selection: """
+      nodes: $.payout_entries {
+        id
+        payoutId: payout_id
+        effectiveAt: effective_at
+        type
+        grossAmountMoney: gross_amount_money {
+          amount
+          currency: currency_code
+        }
+        feeAmountMoney: fee_amount_money {
+          amount
+          currency: currency_code
+        }
+        netAmountMoney: net_amount_money {
+          amount
+          currency: currency_code
+        }
+      }
+      pageInfo: {
+        cursor: $.cursor
+      }
+    """
+  )
+}
+
+"""
+A connection to a list of payout entries.
+"""
+type PayoutEntryConnection {
+  """
+  A list of payout entries.
+  """
+  nodes: [PayoutEntry!]!
+
+  """
+  Information for pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+"""
+An entry in a payout indicating money movement.
+"""
+type PayoutEntry {
+  """
+  The ID of the payout entry.
+  """
+  id: ID!
+
+  """
+  The ID of the payout this entry belongs to.
+  """
+  payoutId: ID!
+
+  """
+  The timestamp of when this entry affected the payout.
+  """
+  effectiveAt: String
+
+  """
+  The type of activity this entry represents.
+  """
+  type: String
+
+  """
+  The gross amount of money for this entry.
+  """
+  grossAmountMoney: Money
+
+  """
+  The fee amount of money for this entry.
+  """
+  feeAmountMoney: Money
+
+  """
+  The net amount of money for this entry.
+  """
+  netAmountMoney: Money
+}
+
+type Query {
+  """
+  Retrieves details of a specific payout identified by a payout ID.
+  """
+  payout(
+    """
+    The ID of the payout to retrieve.
+    """
+    id: ID!
+  ): Payout @connect(
+    source: "connect-v2"
+    id: "GetPayout"
+    entity: true
+    http: { GET: "/payouts/{$args.id}" }
+    selection: """
+      $.payout {
+        id
+        status
+        locationId: location_id
+        createdAt: created_at
+        updatedAt: updated_at
+        amountMoney: amount_money {
+          amount
+          currency: currency_code
+        }
+        destination {
+          type
+          id
+        }
+        version
+        type
+        payoutFee: payout_fee {
+          amountMoney: amount_money {
+            amount
+            currency: currency_code
+          }
+          effectiveAt: effective_at
+          type
+        }
+        arrivalDate: arrival_date
+        endToEndId: end_to_end_id
+      }
+    """
+  )
+
+  """
+  Retrieves a list of all payouts.
+  """
+  payouts(
+    """
+    The ID of the location for which to list the payouts.
+    """
+    locationId: ID
+
+    """
+    If provided, only payouts with the given status are returned.
+    """
+    status: PayoutStatus
+
+    """
+    The timestamp for the beginning of the payout creation time.
+    """
+    beginTime: String
+
+    """
+    The timestamp for the end of the payout creation time.
+    """
+    endTime: String
+
+    """
+    The order in which payouts are listed.
+    """
+    sortOrder: String
+
+    """
+    A pagination cursor returned by a previous call to this endpoint.
+    """
+    cursor: String
+
+    """
+    The maximum number of results to be returned in a single page.
+    """
+    limit: Int
+  ): PayoutConnection! @connect(
+    source: "connect-v2"
+    id: "ListPayouts"
+    http: { 
+      GET: "/payouts"
+      queryParams: """
+        location_id: $args.locationId
+        status: $args.status
+        begin_time: $args.beginTime
+        end_time: $args.endTime
+        sort_order: $args.sortOrder
+        cursor: $args.cursor
+        limit: $args.limit
+      """
+    }
+    selection: """
+      nodes: $.payouts {
+        id
+        status
+        locationId: location_id
+        createdAt: created_at
+        updatedAt: updated_at
+        amountMoney: amount_money {
+          amount
+          currency: currency_code
+        }
+        destination {
+          type
+          id
+        }
+        version
+        type
+        payoutFee: payout_fee {
+          amountMoney: amount_money {
+            amount
+            currency: currency_code
+          }
+          effectiveAt: effective_at
+          type
+        }
+        arrivalDate: arrival_date
+        endToEndId: end_to_end_id
+      }
+      pageInfo: {
+        cursor: $.cursor
+      }
+    """
+  )
+}
+
+"""
+A connection to a list of payouts.
+"""
+type PayoutConnection {
+  """
+  A list of payouts.
+  """
+  nodes: [Payout!]!
+
+  """
+  Information for pagination.
+  """
+  pageInfo: PageInfo!
+}

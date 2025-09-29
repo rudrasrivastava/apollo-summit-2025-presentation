@@ -1,0 +1,555 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+}
+
+"""
+Represents an amount of money. Money fields can be signed or unsigned.
+Fields that do not explicitly define whether they are signed or unsigned are
+considered unsigned and can only hold positive amounts. For signed fields, the
+sign of the value indicates the purpose of the money transfer.
+"""
+type Money @shareable {
+  """
+  The amount of money, in the smallest denomination of the currency.
+  For example, when currency is USD, amount is in cents.
+  Monetary amounts can be positive or negative.
+  """
+  amount: Int
+
+  """
+  The type of currency, in ISO 4217 format.
+  For example, the currency code for US dollars is USD.
+  """
+  currency: String
+}
+
+"""
+The status of an invoice.
+"""
+enum InvoiceStatus {
+  """
+  The invoice is a draft. You must publish a draft invoice before Square can process it.
+  A draft invoice has no public_url, so it is not available to customers.
+  """
+  DRAFT
+  
+  """
+  The invoice is published but not yet paid.
+  """
+  UNPAID
+  
+  """
+  The invoice is scheduled to be processed.
+  """
+  SCHEDULED
+  
+  """
+  A partial payment is received for the invoice.
+  """
+  PARTIALLY_PAID
+  
+  """
+  The customer paid the invoice in full.
+  """
+  PAID
+  
+  """
+  The invoice is paid (or partially paid) and some but not all the amount paid is refunded.
+  """
+  PARTIALLY_REFUNDED
+  
+  """
+  The full amount that the customer paid for the invoice is refunded.
+  """
+  REFUNDED
+  
+  """
+  The invoice is canceled.
+  """
+  CANCELED
+  
+  """
+  Square canceled the invoice due to suspicious activity.
+  """
+  FAILED
+  
+  """
+  A payment on the invoice was initiated but has not yet been processed.
+  """
+  PAYMENT_PENDING
+}
+
+"""
+Represents a Square seller location.
+"""
+type Location @key(fields: "id", resolvable: false) {
+  """
+  The Square-assigned ID of the location.
+  """
+  id: ID!
+}
+
+"""
+Represents a Square order.
+"""
+type Order @key(fields: "id", resolvable: false) {
+  """
+  The Square-assigned ID of the order.
+  """
+  id: ID!
+}
+
+"""
+Represents a Square customer.
+"""
+type Customer @key(fields: "id", resolvable: false) {
+  """
+  The Square-assigned ID of the customer.
+  """
+  id: ID!
+}
+
+"""
+Represents an invoice.
+"""
+type Invoice @key(fields: "id") @connect(
+  source: "connect-v2"
+  http: { GET: "/invoices/{$this.id}" }
+  selection: """
+    $.invoice {
+      id
+      version
+      locationId: location_id
+      orderId: order_id
+      paymentRequests: payment_requests {
+        uid
+        requestedMoney: requested_money {
+          amount
+          currency
+        }
+        receivedMoney: received_money {
+          amount
+          currency
+        }
+        remainingMoney: remaining_money {
+          amount
+          currency
+        }
+        dueDate: due_date
+      }
+      primaryRecipientId: primary_recipient_id
+      status
+      createdAt: created_at
+      updatedAt: updated_at
+      nextPaymentAmountMoney: next_payment_amount_money {
+        amount
+        currency
+      }
+      publicUrl: public_url
+      title
+      description
+      scheduledAt: scheduled_at
+      timezone
+    }
+  """
+) {
+  """
+  The Square-assigned ID of the invoice.
+  """
+  id: ID!
+  
+  """
+  The version number, which is incremented each time an update is committed to the invoice.
+  """
+  version: Int!
+  
+  """
+  The ID of the location associated with the invoice.
+  """
+  locationId: ID! @inaccessible
+
+  """
+  The location associated with the invoice.
+  """
+  location: Location @connect(
+    source: "connect-v2"
+    id: "GetLocation"
+    http: { GET: "/locations/{$this.locationId}" }
+    selection: """
+      $.location {
+        id
+      }
+    """
+  )
+  
+  """
+  The ID of the order associated with the invoice.
+  """
+  orderId: String @inaccessible
+
+  """
+  The order associated with the invoice.
+  """
+  order: Order @connect(
+    source: "connect-v2"
+    id: "GetOrder"
+    http: { GET: "/orders/{$this.orderId}" }
+    selection: """
+      $.order {
+        id
+      }
+    """
+  )
+  
+  """
+  The payment requests associated with the invoice.
+  """
+  paymentRequests: [InvoicePaymentRequest!]
+  
+  """
+  The ID of the primary recipient of the invoice.
+  """
+  primaryRecipientId: String @inaccessible
+
+  """
+  The primary recipient of the invoice.
+  """
+  primaryRecipient: Customer @connect(
+    source: "connect-v2"
+    id: "GetCustomer"
+    http: { GET: "/customers/{$this.primaryRecipientId}" }
+    selection: """
+      $.customer {
+        id
+      }
+    """
+  )
+  
+  """
+  The status of the invoice.
+  """
+  status: InvoiceStatus!
+  
+  """
+  The timestamp when the invoice was created, in RFC 3339 format.
+  """
+  createdAt: String!
+  
+  """
+  The timestamp when the invoice was last updated, in RFC 3339 format.
+  """
+  updatedAt: String!
+  
+  """
+  The current amount due for the invoice.
+  """
+  nextPaymentAmountMoney: Money
+  
+  """
+  A temporary link to the Square-hosted payment page for the invoice.
+  """
+  publicUrl: String
+  
+  """
+  The title of the invoice.
+  """
+  title: String
+  
+  """
+  The description of the invoice.
+  """
+  description: String
+  
+  """
+  The timestamp when the invoice is scheduled for processing.
+  """
+  scheduledAt: String
+  
+  """
+  The time zone used to interpret calendar dates on the invoice.
+  """
+  timezone: String
+}
+
+"""
+Represents the payment request for an invoice.
+"""
+type InvoicePaymentRequest {
+  """
+  The unique ID of the payment request.
+  """
+  uid: String!
+  
+  """
+  The amount of money requested.
+  """
+  requestedMoney: Money
+  
+  """
+  The amount of money received.
+  """
+  receivedMoney: Money
+  
+  """
+  The amount of money remaining to be paid.
+  """
+  remainingMoney: Money
+  
+  """
+  The due date for the payment.
+  """
+  dueDate: String
+}
+
+"""
+Connection type for paginated invoice queries
+"""
+type InvoiceConnection {
+  """
+  The list of invoices.
+  """
+  nodes: [Invoice!]!
+  
+  """
+  Pagination information
+  """
+  cursor: String
+}
+
+extend type Query {
+  """
+  Get a single invoice by ID.
+  """
+  invoice(
+    """
+    The ID of the invoice to retrieve.
+    """
+    id: ID!
+  ): Invoice
+  @connect(
+    source: "connect-v2"
+    id: "GetInvoice"
+    http: { GET: "/invoices/{$args.id}" }
+    entity: true
+    selection: """
+      $.invoice {
+        id
+        version
+        locationId: location_id
+        orderId: order_id
+        paymentRequests: payment_requests {
+          uid
+          requestedMoney: requested_money {
+            amount
+            currency
+          }
+          receivedMoney: received_money {
+            amount
+            currency
+          }
+          remainingMoney: remaining_money {
+            amount
+            currency
+          }
+          dueDate: due_date
+        }
+        primaryRecipientId: primary_recipient_id
+        status
+        createdAt: created_at
+        updatedAt: updated_at
+        nextPaymentAmountMoney: next_payment_amount_money {
+          amount
+          currency
+        }
+        publicUrl: public_url
+        title
+        description
+        scheduledAt: scheduled_at
+        timezone
+      }
+    """
+  )
+
+  """
+  List invoices for a given location.
+  """
+  invoices(
+    """
+    The ID of the location for which to list invoices.
+    """
+    locationId: ID!
+    
+    """
+    A pagination cursor returned by a previous call to this endpoint.
+    """
+    cursor: String
+    
+    """
+    The maximum number of invoices to return (200 is the maximum limit).
+    """
+    limit: Int
+  ): InvoiceConnection!
+  @connect(
+    source: "connect-v2"
+    id: "ListInvoices"
+    http: {
+      GET: "/invoices"
+      queryParams: """
+        location_id: $args.locationId
+        cursor: $args.cursor
+        limit: $args.limit
+      """
+    }
+    selection: """
+      $({
+        nodes: $.invoices,
+        cursor: $.cursor
+      }) {
+        nodes {
+          id
+          version
+          locationId: location_id
+          orderId: order_id
+          paymentRequests: payment_requests {
+            uid
+            requestedMoney: requested_money {
+              amount
+              currency
+            }
+            receivedMoney: received_money {
+              amount
+              currency
+            }
+            remainingMoney: remaining_money {
+              amount
+              currency
+            }
+            dueDate: due_date
+          }
+          primaryRecipientId: primary_recipient_id
+          status
+          createdAt: created_at
+          updatedAt: updated_at
+          nextPaymentAmountMoney: next_payment_amount_money {
+            amount
+            currency
+          }
+          publicUrl: public_url
+          title
+          description
+          scheduledAt: scheduled_at
+          timezone
+        }
+        cursor
+      }
+    """
+  )
+
+  """
+  Search for invoices.
+  """
+  searchInvoices(
+    """
+    The cursor returned in the previous response (for retrieving the next page).
+    """
+    cursor: String
+    
+    """
+    The maximum number of invoices to return.
+    """
+    limit: Int
+    
+    """
+    The ID of the location to search for invoices.
+    """
+    locationId: ID!
+  ): InvoiceConnection!
+  @connect(
+    source: "connect-v2"
+    id: "SearchInvoices"
+    http: {
+      POST: "/invoices/search"
+      body: "$({ query: { filter: { location_ids: [$args.locationId] } }, cursor: $args.cursor, limit: $args.limit })"
+    }
+    selection: """
+      $({
+        nodes: $.invoices,
+        cursor: $.cursor
+      }) {
+        nodes {
+          id
+          version
+          locationId: location_id
+          orderId: order_id
+          paymentRequests: payment_requests {
+            uid
+            requestedMoney: requested_money {
+              amount
+              currency
+            }
+            receivedMoney: received_money {
+              amount
+              currency
+            }
+            remainingMoney: remaining_money {
+              amount
+              currency
+            }
+            dueDate: due_date
+          }
+          primaryRecipientId: primary_recipient_id
+          status
+          createdAt: created_at
+          updatedAt: updated_at
+          nextPaymentAmountMoney: next_payment_amount_money {
+            amount
+            currency
+          }
+          publicUrl: public_url
+          title
+          description
+          scheduledAt: scheduled_at
+          timezone
+        }
+        cursor
+      }
+    """
+  )
+}

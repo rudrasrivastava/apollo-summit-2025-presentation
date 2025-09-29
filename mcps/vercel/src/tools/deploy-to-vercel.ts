@@ -29,6 +29,9 @@ export function deployToVercelTool(server: McpServer): void {
         // Read HTML file
         const htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
         
+        // Don't add any custom headers - let Vercel use its defaults
+        // Based on Vercel community feedback, custom headers can interfere with iframe embedding
+        
         // Prepare deployment payload
         const deploymentData = {
           name: projectName.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
@@ -41,8 +44,11 @@ export function deployToVercelTool(server: McpServer): void {
           projectSettings: {
             framework: null,
             buildCommand: null,
-            outputDirectory: null
+            outputDirectory: null,
+            installCommand: null,
+            devCommand: null
           },
+          public: true,
           target: 'production'
         };
 
@@ -53,7 +59,10 @@ export function deployToVercelTool(server: McpServer): void {
           throw new Error(`Vercel API error: ${response.error.message}`);
         }
 
+        // Extract all possible URLs from Vercel response
         const deploymentUrl = `https://${response.url}`;
+        const cleanProjectName = projectName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+        const publicUrl = `https://${cleanProjectName}.vercel.app`;
         const inspectorUrl = `https://vercel.com/${response.creator?.username || 'user'}/${response.name}`;
 
         return {
@@ -63,12 +72,14 @@ export function deployToVercelTool(server: McpServer): void {
               text: JSON.stringify({
                 success: true,
                 deploymentId: response.uid,
-                url: deploymentUrl,
+                publicUrl: publicUrl,
+                deploymentUrl: deploymentUrl,
                 inspectorUrl: inspectorUrl,
                 projectName: response.name,
                 status: response.readyState,
                 createdAt: response.createdAt,
-                message: `✅ Successfully deployed to Vercel!\n🌐 Live URL: ${deploymentUrl}\n📊 Inspector: ${inspectorUrl}`
+                message: `✅ Successfully deployed to Vercel!\n🌐 Public URL: ${publicUrl}\n🔗 Deployment URL: ${deploymentUrl}\n📊 Inspector: ${inspectorUrl}`,
+                embeddableUrl: publicUrl
               }, null, 2),
             },
           ],

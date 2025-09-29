@@ -1,0 +1,783 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+}
+
+"""
+Represents a postal address in a country.
+"""
+type Address @shareable {
+  """
+  The first line of the address.
+  Provides the address's most specific details, like street number, street name, and building name.
+  """
+  addressLine1: String
+
+  """
+  The second line of the address, if any.
+  """
+  addressLine2: String
+
+  """
+  The third line of the address, if any.
+  """
+  addressLine3: String
+
+  """
+  The city or town of the address.
+  """
+  locality: String
+
+  """
+  A civil region within the address's locality, if any.
+  """
+  sublocality: String
+
+  """
+  A civil region within the address's sublocality, if any.
+  """
+  sublocality2: String
+
+  """
+  A civil region within the address's sublocality_2, if any.
+  """
+  sublocality3: String
+
+  """
+  A civil entity within the address's country. In the US, this is the state.
+  """
+  administrativeDistrictLevel1: String
+
+  """
+  A civil entity within the address's administrative_district_level_1.
+  In the US, this is the county.
+  """
+  administrativeDistrictLevel2: String
+
+  """
+  A civil entity within the address's administrative_district_level_2, if any.
+  """
+  administrativeDistrictLevel3: String
+
+  """
+  The address's postal code.
+  """
+  postalCode: String
+
+  """
+  The address's country, in the two-letter format of ISO 3166. For example, US or FR.
+  """
+  country: String
+
+  """
+  Optional first name when it's representing recipient.
+  """
+  firstName: String
+
+  """
+  Optional last name when it's representing recipient.
+  """
+  lastName: String
+}
+
+"""
+Specifies customer attributes as the sort key to customer profiles returned from a search.
+"""
+enum CustomerSortField {
+  """
+  Use the default sort key. By default, customers are sorted
+  alphanumerically by concatenating their given name and family name. If
+  neither name field is set, string comparison is performed using one of the
+  remaining fields in the following order: company name, email, phone number.
+  """
+  DEFAULT
+
+  """
+  Use the creation date attribute (createdAt) of customer profiles as the sort key.
+  """
+  CREATED_AT
+}
+
+"""
+The order (e.g., chronological or alphabetical) in which results from a request are returned.
+"""
+enum SortOrder {
+  """
+  The results are returned in descending (e.g., newest-first or Z-A) order.
+  """
+  DESC
+
+  """
+  The results are returned in ascending (e.g., oldest-first or A-Z) order.
+  """
+  ASC
+}
+
+"""
+Indicates the method used to create the customer profile.
+"""
+enum CustomerCreationSource {
+  """
+  The default creation source. Used when the original source is unrecognized.
+  """
+  OTHER
+
+  """
+  Created automatically when an appointment was scheduled.
+  """
+  APPOINTMENTS
+
+  """
+  Created automatically when a coupon was issued using Square Point of Sale.
+  """
+  COUPON
+
+  """
+  Restored through Square's deletion recovery process.
+  """
+  DELETION_RECOVERY
+
+  """
+  Created manually through Square Seller Dashboard or Point of Sale.
+  """
+  DIRECTORY
+
+  """
+  Created automatically when a gift card was issued.
+  """
+  EGIFTING
+
+  """
+  Created through Square Point of Sale when signing up for marketing emails.
+  """
+  EMAIL_COLLECTION
+
+  """
+  Created automatically when providing feedback through a digital receipt.
+  """
+  FEEDBACK
+
+  """
+  Created automatically when importing customer data.
+  """
+  IMPORT
+
+  """
+  Created automatically during an invoice payment.
+  """
+  INVOICES
+
+  """
+  Created automatically for loyalty reward programs.
+  """
+  LOYALTY
+
+  """
+  Created from a Facebook integration campaign.
+  """
+  MARKETING
+
+  """
+  Created by merging multiple customer profiles.
+  """
+  MERGE
+
+  """
+  Created through Square's Online Store solution.
+  """
+  ONLINE_STORE
+
+  """
+  Created automatically from a successful transaction.
+  """
+  INSTANT_PROFILE
+
+  """
+  Created through Square's Virtual Terminal.
+  """
+  TERMINAL
+
+  """
+  Created through a Square API call.
+  """
+  THIRD_PARTY
+
+  """
+  Created by a third-party product through an official integration.
+  """
+  THIRD_PARTY_IMPORT
+
+  """
+  Restored through Square's unmerge recovery process.
+  """
+  UNMERGE_RECOVERY
+}
+
+"""
+Represents communication preferences for the customer profile.
+"""
+type CustomerPreferences @shareable {
+  """
+  Indicates whether the customer has unsubscribed from marketing campaign emails.
+  """
+  emailUnsubscribed: Boolean
+}
+
+"""
+Represents the tax ID associated with a customer profile.
+"""
+type CustomerTaxIds @shareable {
+  """
+  The EU VAT identification number for the customer. For example, 'IE3426675K'.
+  """
+  euVat: String
+}
+
+"""
+Represents a customer group in the Square system.
+"""
+type CustomerGroup @key(fields: "id", resolvable: false) {
+  """
+  A unique Square-assigned ID for the customer group.
+  """
+  id: ID!
+}
+
+"""
+Represents a customer segment in the Square system.
+"""
+type CustomerSegment @key(fields: "id", resolvable: false) {
+  """
+  A unique Square-assigned ID for the customer segment.
+  """
+  id: ID!
+}
+
+"""
+Represents a customer profile in the Square system.
+"""
+type Customer @key(fields: "id") {
+  """
+  A unique Square-assigned ID for the customer profile.
+  """
+  id: ID!
+
+  """
+  The timestamp when the customer profile was created, in RFC 3339 format.
+  """
+  createdAt: String!
+
+  """
+  The timestamp when the customer profile was last updated, in RFC 3339 format.
+  """
+  updatedAt: String!
+
+  """
+  The given name (first name) associated with the customer profile.
+  """
+  givenName: String
+
+  """
+  The family name (last name) associated with the customer profile.
+  """
+  familyName: String
+
+  """
+  A nickname for the customer profile.
+  """
+  nickname: String
+
+  """
+  A business name associated with the customer profile.
+  """
+  companyName: String
+
+  """
+  The email address associated with the customer profile.
+  """
+  emailAddress: String
+
+  """
+  The physical address associated with the customer profile.
+  """
+  address: Address
+
+  """
+  The phone number associated with the customer profile.
+  """
+  phoneNumber: String
+
+  """
+  The birthday associated with the customer profile, in YYYY-MM-DD format.
+  """
+  birthday: String
+
+  """
+  An optional second ID used to associate the customer profile with an entity in another system.
+  """
+  referenceId: String
+
+  """
+  A custom note associated with the customer profile.
+  """
+  note: String
+
+  """
+  Represents general customer preferences.
+  """
+  preferences: CustomerPreferences
+
+  """
+  The method used to create the customer profile.
+  """
+  creationSource: CustomerCreationSource
+
+  """
+  The IDs of customer groups the customer belongs to.
+  """
+  groupIds: [String!] @inaccessible
+
+  """
+  The customer groups associated with this customer.
+  """
+  groups: [CustomerGroup!]
+    @connect(
+      source: "connect-v2"
+      id: "GetCustomerGroups"
+      http: { GET: "/customers/{$this.id}/groups" }
+      selection: """
+        $.groups {
+          id
+        }
+      """
+    )
+
+  """
+  The IDs of customer segments the customer belongs to.
+  """
+  segmentIds: [String!] @inaccessible
+
+  """
+  The customer segments associated with this customer.
+  """
+  segments: [CustomerSegment!]
+    @connect(
+      source: "connect-v2"
+      id: "GetCustomerSegments"
+      http: { GET: "/customers/{$this.id}/segments" }
+      selection: """
+        $.segments {
+          id
+        }
+      """
+    )
+
+  """
+  The Square-assigned version number of the customer profile.
+  """
+  version: Int!
+
+  """
+  The tax ID associated with the customer profile.
+  """
+  taxIds: CustomerTaxIds
+}
+
+"""
+Connection type for paginated customer queries
+"""
+type CustomerConnection {
+  """
+  List of customer nodes
+  """
+  nodes: [Customer!]!
+
+  """
+  Pagination information
+  """
+  pageInfo: CustomersPageInfo!
+}
+
+"""
+Page information for paginated responses
+"""
+type CustomersPageInfo @shareable {
+  """
+  Cursor for the next page of results
+  """
+  cursor: String
+
+  """
+  Total count of items when requested
+  """
+  count: Int
+}
+
+"""
+Input type for customer search criteria
+"""
+input CustomerSearchInput {
+  """
+  Sort field for the results
+  """
+  sortField: CustomerSortField
+
+  """
+  Sort order for the results
+  """
+  sortOrder: SortOrder
+
+  """
+  Maximum number of results to return
+  """
+  limit: Int
+
+  """
+  Whether to return the total count
+  """
+  count: Boolean
+}
+
+type Query {
+  """
+  Get a single customer by ID.
+  """
+  customer(
+    """
+    The ID of the customer to retrieve.
+    """
+    id: ID!
+  ): Customer
+    @connect(
+      source: "connect-v2"
+      id: "RetrieveCustomer"
+      entity: true
+      http: { GET: "/customers/{$args.id}" }
+      selection: """
+        $.customer {
+          id
+          createdAt: created_at
+          updatedAt: updated_at
+          givenName: given_name
+          familyName: family_name
+          nickname
+          companyName: company_name
+          emailAddress: email_address
+          address {
+            addressLine1: address_line1
+            addressLine2: address_line2
+            addressLine3: address_line3
+            locality
+            sublocality
+            sublocality2
+            sublocality3
+            administrativeDistrictLevel1: administrative_district_level1
+            administrativeDistrictLevel2: administrative_district_level2
+            administrativeDistrictLevel3: administrative_district_level3
+            postalCode: postal_code
+            country
+            firstName: first_name
+            lastName: last_name
+          }
+          phoneNumber: phone_number
+          birthday
+          referenceId: reference_id
+          note
+          preferences {
+            emailUnsubscribed: email_unsubscribed
+          }
+          creationSource: creation_source
+          groupIds: group_ids
+          segmentIds: segment_ids
+          version
+          taxIds: tax_ids {
+            euVat: eu_vat
+          }
+        }
+      """
+    )
+
+  """
+  List customer profiles associated with a Square account.
+  """
+  customers(
+    """
+    A pagination cursor returned by a previous call to this endpoint.
+    """
+    cursor: String
+
+    """
+    The maximum number of results to return in a single page.
+    """
+    limit: Int
+
+    """
+    Indicates how customers should be sorted.
+    """
+    sortField: CustomerSortField
+
+    """
+    Indicates whether customers should be sorted in ascending or descending order.
+    """
+    sortOrder: SortOrder
+
+    """
+    Indicates whether to return the total count of customers.
+    """
+    count: Boolean
+  ): CustomerConnection!
+    @connect(
+      source: "connect-v2"
+      id: "ListCustomers"
+      http: {
+        GET: "/customers"
+        queryParams: """
+          cursor: $args.cursor
+          limit: $args.limit
+          sort_field: $args.sortField
+          sort_order: $args.sortOrder
+          count: $args.count
+        """
+      }
+      selection: """
+        $({
+          nodes: $.customers,
+          pageInfo: {
+            cursor: $.cursor,
+            count: $.count
+          }
+        }) {
+          nodes {
+            id
+            createdAt: created_at
+            updatedAt: updated_at
+            givenName: given_name
+            familyName: family_name
+            nickname
+            companyName: company_name
+            emailAddress: email_address
+            address {
+              addressLine1: address_line1
+              addressLine2: address_line2
+              addressLine3: address_line3
+              locality
+              sublocality
+              sublocality2
+              sublocality3
+              administrativeDistrictLevel1: administrative_district_level1
+              administrativeDistrictLevel2: administrative_district_level2
+              administrativeDistrictLevel3: administrative_district_level3
+              postalCode: postal_code
+              country
+              firstName: first_name
+              lastName: last_name
+            }
+            phoneNumber: phone_number
+            birthday
+            referenceId: reference_id
+            note
+            preferences {
+              emailUnsubscribed: email_unsubscribed
+            }
+            creationSource: creation_source
+            groupIds: group_ids
+            segmentIds: segment_ids
+            version
+            taxIds: tax_ids {
+              euVat: eu_vat
+            }
+          }
+          pageInfo {
+            cursor
+            count
+          }
+        }
+      """
+    )
+
+  """
+  Search for customer profiles.
+  """
+  searchCustomers(
+    """
+    Search criteria for filtering customers
+    """
+    input: CustomerSearchInput
+  ): CustomerConnection!
+    @connect(
+      source: "connect-v2"
+      id: "SearchCustomers"
+      http: {
+        POST: "/customers/search"
+        body: """
+        $({
+          "limit": $args.input.limit,
+          "sort_field": $args.input.sortField,
+          "sort_order": $args.input.sortOrder
+        })
+        """
+      }
+      selection: """
+        $({
+          nodes: $.customers,
+          pageInfo: {
+            cursor: $.cursor,
+            count: $.count
+          }
+        }) {
+          nodes {
+            id
+            createdAt: created_at
+            updatedAt: updated_at
+            givenName: given_name
+            familyName: family_name
+            nickname
+            companyName: company_name
+            emailAddress: email_address
+            address {
+              addressLine1: address_line1
+              addressLine2: address_line2
+              addressLine3: address_line3
+              locality
+              sublocality
+              sublocality2
+              sublocality3
+              administrativeDistrictLevel1: administrative_district_level1
+              administrativeDistrictLevel2: administrative_district_level2
+              administrativeDistrictLevel3: administrative_district_level3
+              postalCode: postal_code
+              country
+              firstName: first_name
+              lastName: last_name
+            }
+            phoneNumber: phone_number
+            birthday
+            referenceId: reference_id
+            note
+            preferences {
+              emailUnsubscribed: email_unsubscribed
+            }
+            creationSource: creation_source
+            groupIds: group_ids
+            segmentIds: segment_ids
+            version
+            taxIds: tax_ids {
+              euVat: eu_vat
+            }
+          }
+          pageInfo {
+            cursor
+            count
+          }
+        }
+      """
+    )
+
+  """
+  Get a list of customer groups.
+  """
+  customerGroups: [CustomerGroup!]!
+    @connect(
+      source: "connect-v2"
+      id: "ListCustomerGroups"
+      http: { GET: "/customers/groups" }
+      selection: """
+        $.groups {
+          id
+        }
+      """
+    )
+
+  """
+  Get a list of customer segments.
+  """
+  customerSegments: [CustomerSegment!]!
+    @connect(
+      source: "connect-v2"
+      id: "ListCustomerSegments"
+      http: { GET: "/customers/segments" }
+      selection: """
+        $.segments {
+          id
+        }
+      """
+    )
+
+  """
+  Get a customer group by ID.
+  """
+  customerGroup(
+    """
+    The ID of the customer group to retrieve.
+    """
+    id: ID!
+  ): CustomerGroup
+    @connect(
+      source: "connect-v2"
+      id: "RetrieveCustomerGroup"
+      entity: true
+      http: { GET: "/customers/groups/{$args.id}" }
+      selection: """
+        $.group {
+          id
+        }
+      """
+    )
+
+  """
+  Get a customer segment by ID.
+  """
+  customerSegment(
+    """
+    The ID of the customer segment to retrieve.
+    """
+    id: ID!
+  ): CustomerSegment
+    @connect(
+      source: "connect-v2"
+      id: "RetrieveCustomerSegment"
+      entity: true
+      http: { GET: "/customers/segments/{$args.id}" }
+      selection: """
+        $.segment {
+          id
+        }
+      """
+    )
+}

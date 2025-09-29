@@ -1,0 +1,292 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+}
+
+"The ISO 3166 Alpha-2 country code."
+enum Country {
+  US
+  GB
+  CA
+  JP
+  AU
+}
+
+"The 3-character ISO 4217 currency code."
+enum Currency {
+  USD
+  GBP
+  CAD
+  JPY
+  AUD
+}
+
+"Indicates the financial purpose of the bank account."
+enum BankAccountType {
+  "An account at a financial institution against which checks can be drawn by the account depositor."
+  CHECKING
+  "An account at a financial institution that pays interest but cannot be used directly as money in the narrow sense of a medium of exchange."
+  SAVINGS
+  "An account at a financial institution that contains a deposit of funds and/or securities."
+  INVESTMENT
+  "An account at a financial institution which cannot be described by the other types."
+  OTHER
+  "An account at a financial institution against which checks can be drawn specifically for business purposes (non-personal use)."
+  BUSINESS_CHECKING
+}
+
+"Indicates the current verification status of a BankAccount object."
+enum BankAccountStatus {
+  "Indicates that the verification process has started. Some features (for example, creditable or debitable) may be provisionally enabled on the bank account."
+  VERIFICATION_IN_PROGRESS
+  "Indicates that the bank account was successfully verified."
+  VERIFIED
+  "Indicates that the bank account is disabled and is permanently unusable for funds transfer."
+  DISABLED
+}
+
+"Represents a bank account. For more information about linking a bank account to a Square account."
+type BankAccount @key(fields: "id") {
+  "The unique, Square-issued identifier for the bank account."
+  id: ID!
+  "The last few digits of the account number."
+  accountNumberSuffix: String!
+  "The ISO 3166 Alpha-2 country code where the bank account is based."
+  country: Country!
+  "The 3-character ISO 4217 currency code indicating the operating currency of the bank account."
+  currency: Currency!
+  "The financial purpose of the associated bank account."
+  accountType: BankAccountType!
+  "Name of the account holder. This name must match the name on the targeted bank account record."
+  holderName: String!
+  "Primary identifier for the bank."
+  primaryBankIdentificationNumber: String!
+  "Secondary identifier for the bank."
+  secondaryBankIdentificationNumber: String
+  "Reference identifier that will be displayed to UK bank account owners when collecting direct debit authorization."
+  debitMandateReferenceId: String
+  "Client-provided identifier for linking the banking account to an entity in a third-party system."
+  referenceId: String
+  "The location to which the bank account belongs."
+  locationId: ID @inaccessible
+  "The location to which the bank account belongs."
+  location: Location @connect(
+    source: "connect-v2"
+    id: "GetBankAccountLocation"
+    http: { GET: "/locations/{$this.locationId}" }
+    selection: """
+    $.location {
+      id
+    }
+    """
+  )
+  "The current verification status of this BankAccount object."
+  status: BankAccountStatus!
+  "Indicates whether it is possible for Square to send money to this bank account."
+  creditable: Boolean!
+  "Indicates whether it is possible for Square to take money from this bank account."
+  debitable: Boolean!
+  "A Square-assigned, unique identifier for the bank account based on the account information."
+  fingerprint: String
+  "The current version of the BankAccount."
+  version: Int
+  "Name of actual financial institution. For example 'Bank of America'."
+  bankName: String
+}
+
+"Connection type for BankAccounts"
+type BankAccountConnection {
+  "The list of bank accounts"
+  nodes: [BankAccount!]!
+  "Information for pagination"
+  cursor: String
+}
+
+type Location @key(fields: "id") {
+  id: ID!
+  "Returns a list of BankAccount objects linked to this location."
+  bankAccounts(
+    "The pagination cursor returned by a previous call to this endpoint."
+    cursor: String
+    "Upper limit on the number of bank accounts to return. Currently, 1000 is the largest supported limit."
+    limit: Int
+  ): BankAccountConnection!
+    @connect(
+      source: "connect-v2"
+      id: "ListLocationBankAccounts"
+      http: {
+        GET: "/bank-accounts"
+        queryParams: """
+        cursor: $args.cursor
+        limit: $args.limit
+        location_id: $this.id
+        """
+      }
+      selection: """
+      nodes: $.bank_accounts {
+        id
+        accountNumberSuffix: account_number_suffix
+        country
+        currency
+        accountType: account_type
+        holderName: holder_name
+        primaryBankIdentificationNumber: primary_bank_identification_number
+        secondaryBankIdentificationNumber: secondary_bank_identification_number
+        debitMandateReferenceId: debit_mandate_reference_id
+        referenceId: reference_id
+        locationId: location_id
+        status
+        creditable
+        debitable
+        fingerprint
+        version
+        bankName: bank_name
+      }
+      cursor: $.cursor
+      """
+    )
+}
+
+type Query {
+  "Returns details of a BankAccount linked to a Square account."
+  bankAccount(
+    "Square-issued ID of the desired BankAccount."
+    id: ID!
+  ): BankAccount
+    @connect(
+      source: "connect-v2"
+      id: "GetBankAccount"
+      entity: true
+      http: { GET: "/bank-accounts/{$args.id}" }
+      selection: """
+      $.bank_account {
+        id
+        accountNumberSuffix: account_number_suffix
+        country
+        currency
+        accountType: account_type
+        holderName: holder_name
+        primaryBankIdentificationNumber: primary_bank_identification_number
+        secondaryBankIdentificationNumber: secondary_bank_identification_number
+        debitMandateReferenceId: debit_mandate_reference_id
+        referenceId: reference_id
+        locationId: location_id
+        status
+        creditable
+        debitable
+        fingerprint
+        version
+        bankName: bank_name
+      }
+      """
+    )
+
+  "Returns details of a BankAccount identified by V1 bank account ID."
+  bankAccountByV1Id(
+    "Connect V1 ID of the desired BankAccount."
+    v1BankAccountId: ID!
+  ): BankAccount
+    @connect(
+      source: "connect-v2"
+      id: "GetBankAccountByV1Id"
+      http: { GET: "/bank-accounts/by-v1-id/{$args.v1BankAccountId}" }
+      selection: """
+      $.bank_account {
+        id
+        accountNumberSuffix: account_number_suffix
+        country
+        currency
+        accountType: account_type
+        holderName: holder_name
+        primaryBankIdentificationNumber: primary_bank_identification_number
+        secondaryBankIdentificationNumber: secondary_bank_identification_number
+        debitMandateReferenceId: debit_mandate_reference_id
+        referenceId: reference_id
+        locationId: location_id
+        status
+        creditable
+        debitable
+        fingerprint
+        version
+        bankName: bank_name
+      }
+      """
+    )
+
+  "Returns a list of BankAccount objects linked to a Square account."
+  bankAccounts(
+    "The pagination cursor returned by a previous call to this endpoint."
+    cursor: String
+    "Upper limit on the number of bank accounts to return. Currently, 1000 is the largest supported limit."
+    limit: Int
+  ): BankAccountConnection!
+    @connect(
+      source: "connect-v2"
+      id: "ListBankAccounts"
+      http: {
+        GET: "/bank-accounts"
+        queryParams: """
+        cursor: $args.cursor
+        limit: $args.limit
+        """
+      }
+      selection: """
+      nodes: $.bank_accounts {
+        id
+        accountNumberSuffix: account_number_suffix
+        country
+        currency
+        accountType: account_type
+        holderName: holder_name
+        primaryBankIdentificationNumber: primary_bank_identification_number
+        secondaryBankIdentificationNumber: secondary_bank_identification_number
+        debitMandateReferenceId: debit_mandate_reference_id
+        referenceId: reference_id
+        locationId: location_id
+        status
+        creditable
+        debitable
+        fingerprint
+        version
+        bankName: bank_name
+      }
+      cursor: $.cursor
+      """
+    )
+}

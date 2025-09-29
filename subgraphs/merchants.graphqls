@@ -41,8 +41,14 @@ schema
   query: Query
 }
 
+"A Location represents a physical location where Square processes payments."
+type Location @key(fields: "id", resolvable: false) {
+  "The Square-issued ID of the location."
+  id: ID!
+}
+
 "Represents a business that sells with Square."
-type Merchant {
+type Merchant @key(fields: "id", resolvable: true) {
   "The Square-issued ID of the merchant."
   id: ID!
 
@@ -63,6 +69,18 @@ type Merchant {
 
   "The ID of the main Location for this merchant."
   mainLocationId: ID @inaccessible
+
+  "The main Location for this merchant."
+  mainLocation: Location
+    @connect(
+      source: "connect-v2"
+      http: { GET: "/locations/{$this.mainLocationId}" }
+      selection: """
+      $.location {
+        id
+      }
+      """
+    )
 
   "The time when the merchant was created, in RFC 3339 format."
   createdAt: String
@@ -90,6 +108,7 @@ type Query {
   ): Merchant
     @connect(
       source: "connect-v2"
+      id: "GetMerchant"
       entity: true
       http: { GET: "/merchants/{$args.id}" }
       selection: """
@@ -97,11 +116,11 @@ type Query {
       id
       businessName: business_name
       country
+      languageCode: language_code
       currency
       status
       mainLocationId: main_location_id
       createdAt: created_at
-      languageCode: language_code
       }
       """
     )
@@ -110,6 +129,7 @@ type Query {
   merchants: [Merchant!]!
     @connect(
       source: "connect-v2"
+      id: "ListMerchants"
       http: { GET: "/merchants" }
       selection: """
       $.merchant {

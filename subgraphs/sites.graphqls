@@ -1,0 +1,82 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@inaccessible"])
+  @link(url: "https://specs.apollo.dev/connect/v0.2", import: ["@source"])
+  @source(name: "connect-v2", http: { baseURL: "https://connect.squareup.com/v2" })
+
+"""
+Site type representing a Square Online site
+"""
+type Site @key(fields: "id") {
+  """
+  The unique identifier for the site
+  """
+  id: ID!
+
+  """
+  The title of the site
+  """
+  siteTitle: String
+
+  """
+  The domain name of the site
+  """
+  domain: String
+
+  """
+  Whether the site is published or not
+  """
+  isPublished: Boolean
+
+  """
+  The timestamp when the site was created
+  """
+  createdAt: String!
+
+  """
+  The timestamp when the site was last updated
+  """
+  updatedAt: String!
+}
+
+type Query {
+  """
+  Get a single site by ID (used for entity resolution)
+  """
+  site(id: ID!): Site
+    @connect(
+      source: "connect-v2"
+      id: "GetSite"
+      http: { GET: "/sites/{$args.id}" }
+      selection: """
+      $.site {
+        id
+        siteTitle: site_title
+        domain
+        isPublished: is_published
+        createdAt: created_at
+        updatedAt: updated_at
+      }
+      """
+      entity: true
+    )
+
+  """
+  List all sites
+  """
+  sites: [Site!]!
+    @connect(
+      source: "connect-v2"
+      id: "ListSites"
+      http: { GET: "/sites" }
+      selection: """
+      $.sites {
+        id
+        siteTitle: site_title
+        domain
+        isPublished: is_published
+        createdAt: created_at
+        updatedAt: updated_at
+      }
+      """
+    )
+}

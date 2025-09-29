@@ -2,6 +2,7 @@ version: "1.0.0"
 title: "Build GraphQL-Powered UI"
 author:
   contact: "rudra"
+  metadata: "graphql-powered-generative-ui"
 description: "Build a complete UI for a specific use case by generating multiple GraphQL operations and then a comprehensive UI"
 instructions: |
   You are tasked with building a complete UI for a specific use case by generating multiple GraphQL operations and comprehensive UI based on those operations.
@@ -23,7 +24,9 @@ instructions: |
        - Plan the UI flow and component hierarchy
 
     2. Operation Generation Phase:
-       - For each identified data need, use the generate-operation sub-recipe
+       - For each identified data need, use the generate-operation sub-recipe. Use federation where possible with nested fields returning other entities.
+       - If the operations/ folder has operations, delete them before generating new operations.
+       - Validate each operation against the schema using the apollomcp mcp
        - Ensure operations are optimized for the specific UI requirements
        - Generate both individual item and list operations as needed
 
@@ -34,6 +37,7 @@ instructions: |
 
     4. Integration Phase:
        - Connect UI component to GraphQL operations
+       - Make sure all variables are used in the operations and are properly declared
        - Implement proper caching and refetching strategies
        - Add form validation and user feedback
        - Test all user flows and edge cases
@@ -80,6 +84,13 @@ extensions:
       - VERCEL_TOKEN
     timeout: 300
     description: "For deploying the UI to Vercel"
+  - type: "stdio"
+    name: "mcp-ui"
+    cmd: "node"
+    args:
+      - "/Users/rudra/Development/apollo-summit-2025-presentation/mcps/mcp-ui/dist/index.js"
+    timeout: 300
+    description: "For embedding the UI in an iframe"
 
 sub_recipes:
   - name: "generate-operation"

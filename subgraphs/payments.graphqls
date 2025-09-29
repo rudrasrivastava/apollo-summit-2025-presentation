@@ -1,0 +1,282 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+}
+
+"""
+Represents an amount of money. Money fields can be signed or unsigned.
+Fields that do not explicitly define whether they are signed or unsigned are
+considered unsigned and can only hold positive amounts. For signed fields, the
+sign of the value indicates the purpose of the money transfer.
+"""
+type Money @shareable {
+  """
+  The amount of money, in the smallest denomination of the currency.
+  For example, when currency is USD, amount is in cents.
+  Monetary amounts can be positive or negative.
+  """
+  amount: Int
+
+  """
+  The type of currency, in ISO 4217 format.
+  For example, the currency code for US dollars is USD.
+  """
+  currency: String
+}
+
+"""
+Represents a Square application that can process payments.
+"""
+type Application @key(fields: "id", resolvable: false) {
+  """
+  The unique identifier for the application.
+  """
+  id: ID!
+}
+
+"""
+Represents a payment processed by Square.
+"""
+type Payment @key(fields: "id") {
+  """
+  The unique identifier for the payment.
+  """
+  id: ID!
+
+  """
+  The amount processed for this payment.
+  """
+  amountMoney: Money
+
+  """
+  The amount of money the merchant receives for this payment.
+  """
+  approvedMoney: Money
+
+  """
+  The status of the payment.
+  """
+  status: PaymentStatus!
+
+  """
+  The source type for this payment (e.g., card, cash, etc.).
+  """
+  sourceType: PaymentSourceType!
+
+  """
+  The timestamp when the payment was created, in RFC 3339 format.
+  """
+  createdAt: String
+
+  """
+  The timestamp when the payment was last updated, in RFC 3339 format.
+  """
+  updatedAt: String
+
+  """
+  The application ID used to take the payment.
+  """
+  applicationId: ID! @inaccessible
+
+  """
+  The application that processed this payment.
+  """
+  application: Application
+  @connect(
+    source: "connect-v2"
+    id: "GetPaymentApplication"
+    http: { GET: "/payments/{$this.id}" }
+    selection: """
+    $.payment.application_id {
+      id: $this
+    }
+    """
+  )
+}
+
+"""
+Represents the possible status values for a payment.
+"""
+enum PaymentStatus {
+  APPROVED
+  COMPLETED
+  FAILED
+  PENDING
+  CANCELED
+}
+
+"""
+Represents the possible source types for a payment.
+"""
+enum PaymentSourceType {
+  CARD
+  CASH
+  BANK_ACCOUNT
+  WALLET
+  BUY_NOW_PAY_LATER
+  SQUARE_ACCOUNT
+  OTHER
+}
+
+"""
+Connection type for paginated payment queries
+"""
+type PaymentConnection {
+  """
+  The list of payments in this page
+  """
+  nodes: [Payment!]!
+
+  """
+  Pagination information
+  """
+  cursor: String
+}
+
+extend type Query {
+  """
+  Retrieves a list of payments.
+  """
+  payments(
+    """
+    A pagination cursor returned by a previous call to this endpoint.
+    Provide this cursor to retrieve the next set of results for the original query.
+    """
+    cursor: String
+
+    """
+    The maximum number of results to be returned in a single page.
+    The default value is 100.
+    """
+    limit: Int
+
+    """
+    Filter by the source type of the payment.
+    """
+    sourceType: PaymentSourceType
+
+    """
+    Filter by the status of the payment.
+    """
+    status: PaymentStatus
+
+    """
+    Filter by the beginning of a time range (RFC 3339 format)
+    """
+    beginTime: String
+
+    """
+    Filter by the end of a time range (RFC 3339 format)
+    """
+    endTime: String
+  ): PaymentConnection!
+    @connect(
+      source: "connect-v2"
+      id: "ListPayments"
+      http: {
+        GET: "/payments"
+        queryParams: """
+        cursor: $args.cursor
+        limit: $args.limit
+        source_type: $args.sourceType
+        status: $args.status
+        begin_time: $args.beginTime
+        end_time: $args.endTime
+        """
+      }
+      selection: """
+      $({
+        nodes: $.payments,
+        cursor: $.cursor
+      }) {
+        nodes {
+          id
+          amountMoney: amount_money {
+            amount
+            currency
+          }
+          approvedMoney: approved_money {
+            amount
+            currency
+          }
+          status
+          sourceType: source_type
+          createdAt: created_at
+          updatedAt: updated_at
+          applicationId: application_id
+        }
+        cursor
+      }
+      """
+    )
+
+  """
+  Retrieves details for a specific payment.
+  """
+  payment(
+    """
+    The ID of the payment to retrieve.
+    """
+    id: ID!
+  ): Payment
+    @connect(
+      source: "connect-v2"
+      id: "GetPayment"
+      entity: true
+      http: { GET: "/payments/{$args.id}" }
+      selection: """
+      $.payment {
+        id
+        amountMoney: amount_money {
+          amount
+          currency
+        }
+        approvedMoney: approved_money {
+          amount
+          currency
+        }
+        status
+        sourceType: source_type
+        createdAt: created_at
+        updatedAt: updated_at
+        applicationId: application_id
+      }
+      """
+    )
+}
