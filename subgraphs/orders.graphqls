@@ -1,0 +1,372 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2",
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+}
+scalar DateTime
+
+type Location @key(fields: "id", resolvable: false) {
+  """The location's unique ID."""
+  id: ID! @external
+}
+
+enum OrderState {
+  """
+  Indicates that the order is open. Open orders can be updated.
+  """
+  OPEN
+
+  """
+  Indicates that the order is completed. Completed orders are fully paid. This is a terminal state.
+  """
+  COMPLETED
+
+  """
+  Indicates that the order is canceled. Canceled orders are not paid. This is a terminal state.
+  """
+  CANCELED
+
+  """
+  Indicates that the order is in a draft state. Draft orders can be updated,
+  but cannot be paid or fulfilled.
+  """
+  DRAFT
+}
+
+"""
+Represents an amount of money. Money fields can be signed or unsigned.
+Fields that do not explicitly define whether they are signed or unsigned are
+considered unsigned and can only hold positive amounts. For signed fields, the
+sign of the value indicates the purpose of the money transfer.
+"""
+type Money @shareable {
+  """
+  The amount of money, in the smallest denomination of the currency.
+  For example, when currency is USD, amount is in cents.
+  Monetary amounts can be positive or negative.
+  """
+  amount: Int
+
+  """
+  The type of currency, in ISO 4217 format.
+  For example, the currency code for US dollars is USD.
+  """
+  currency: String
+}
+
+type Order @key(fields: "id") {
+  """
+  The order's unique ID.
+  """
+  id: ID!
+
+  """
+  The ID of the seller location that this order is associated with. @deprecated Use location field instead.
+  """
+  locationId: ID! @inaccessible
+
+  """
+  The seller location that this order is associated with.
+  """
+  location: Location @connect(
+    source: "connect-v2"
+    http: { GET: "/v2/locations/{$this.locationId}" }
+    selection: """id"""
+  )
+
+  """
+  A short-term identifier for the order (such as a customer first name,
+  table number, or auto-generated order number that resets daily).
+  """
+  ticketName: String
+
+  """
+  The timestamp for when the order was created.
+  """
+  createdAt: DateTime!
+
+  """
+  The timestamp for when the order was last updated.
+  """
+  updatedAt: DateTime!
+
+  """
+  The timestamp for when the order reached a terminal state.
+  """
+  closedAt: DateTime
+
+  """
+  The current state of the order.
+  """
+  state: OrderState
+
+  """
+  The version number, which is incremented each time an update is committed to the order.
+  Orders not created through the API do not include a version number and
+  therefore cannot be updated.
+  """
+  version: Int
+
+  """
+  The total amount of money to collect for the order.
+  """
+  totalMoney: Money @shareable
+
+  """
+  The total amount of tax money to collect for the order.
+  """
+  totalTaxMoney: Money @shareable
+
+  """
+  The total amount of discount money to collect for the order.
+  """
+  totalDiscountMoney: Money @shareable
+
+  """
+  The total amount of tip money to collect for the order.
+  """
+  totalTipMoney: Money @shareable
+
+  """
+  The total amount of money collected in service charges for the order.
+  """
+  totalServiceChargeMoney: Money @shareable
+
+  """
+  The net amount of money due on the order.
+  """
+  netAmountDueMoney: Money @shareable
+
+  """
+  Application-defined data attached to this order.
+  """
+  metadata: [MetadataEntry!]
+}
+
+"""
+Represents a key-value pair in the order metadata.
+"""
+type MetadataEntry {
+  key: String!
+  value: String!
+}
+
+type Query {
+  """
+  Retrieves an Order by ID
+  """
+  order(id: ID!): Order
+    @connect(
+      source: "connect-v2"
+      entity: true
+      http: { GET: "/v2/orders/{$args.id}" }
+      selection: """
+      $.order {
+        id
+        locationId: location_id
+        ticketName: ticket_name
+        createdAt: created_at
+        updatedAt: updated_at
+        closedAt: closed_at
+        state
+        version
+        totalMoney: total_money {
+          amount
+          currency
+        }
+        totalTaxMoney: total_tax_money {
+          amount
+          currency
+        }
+        totalDiscountMoney: total_discount_money {
+          amount
+          currency
+        }
+        totalTipMoney: total_tip_money {
+          amount
+          currency
+        }
+        totalServiceChargeMoney: total_service_charge_money {
+          amount
+          currency
+        }
+        netAmountDueMoney: net_amount_due_money {
+          amount
+          currency
+        }
+        metadata {
+          key
+          value
+        }
+      }
+      """
+    )
+
+  """
+  Search for orders using a filter.
+  """
+  searchOrders(
+    locationIds: [ID!]
+    cursor: String
+    limit: Int
+    query: OrderSearchQuery
+  ): OrderSearchResponse!
+    @connect(
+      source: "connect-v2"
+      http: {
+        POST: "/v2/orders/search"
+        body: "$({ location_ids: $args.locationIds, cursor: $args.cursor, limit: $args.limit, query: $args.query })"
+      }
+      selection: """
+      orders {
+        id
+        locationId: location_id
+        ticketName: ticket_name
+        createdAt: created_at
+        updatedAt: updated_at
+        closedAt: closed_at
+        state
+        version
+        totalMoney: total_money {
+          amount
+          currency
+        }
+        totalTaxMoney: total_tax_money {
+          amount
+          currency
+        }
+        totalDiscountMoney: total_discount_money {
+          amount
+          currency
+        }
+        totalTipMoney: total_tip_money {
+          amount
+          currency
+        }
+        totalServiceChargeMoney: total_service_charge_money {
+          amount
+          currency
+        }
+        netAmountDueMoney: net_amount_due_money {
+          amount
+          currency
+        }
+        metadata {
+          key
+          value
+        }
+      }
+      cursor
+      """
+    )
+}
+
+"""
+Contains query criteria for the search.
+"""
+input OrderSearchQuery {
+  """
+  Filter for results within a time range.
+  """
+  dateTimeFilter: OrderDateTimeFilter
+
+  """
+  Filter by the current order state.
+  """
+  stateFilter: OrderStateFilter
+}
+
+"""
+Filter for Order-related date/time ranges
+"""
+input OrderDateTimeFilter {
+  """
+  Time range for filtering on the created_at timestamp.
+  """
+  createdAt: TimeRangeInput
+
+  """
+  Time range for filtering on the updated_at timestamp.
+  """
+  updatedAt: TimeRangeInput
+
+  """
+  Time range for filtering on the closed_at timestamp.
+  """
+  closedAt: TimeRangeInput
+}
+
+"""
+Input type for time range filters
+"""
+input TimeRangeInput {
+  """
+  A timestamp that indicates the beginning of a time range.
+  """
+  startAt: DateTime
+
+  """
+  A timestamp that indicates the end of a time range.
+  """
+  endAt: DateTime
+}
+
+"""
+Filter by the current order state.
+"""
+input OrderStateFilter {
+  """
+  States to filter for.
+  """
+  states: [OrderState!]!
+}
+
+"""
+Response object for order search.
+"""
+type OrderSearchResponse {
+  """
+  List of orders matching the search criteria.
+  """
+  orders: [Order!]!
+
+  """
+  The pagination cursor to be used in a subsequent request.
+  """
+  cursor: String
+}

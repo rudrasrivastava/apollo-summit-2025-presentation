@@ -1,0 +1,182 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends",
+      "@external",
+      "@inaccessible",
+      "@key",
+      "@override",
+      "@policy",
+      "@provides",
+      "@requires",
+      "@shareable",
+      "@tag",
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect",
+      "@source",
+      "JSONSelection",
+      "HTTPHeaderMapping",
+      "ConnectHTTP",
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" },
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+}
+
+"The status of the Employee being retrieved."
+enum EmployeeStatus {
+  "Specifies that the employee is in the Active state."
+  ACTIVE
+  "Specifies that the employee is in the Inactive state."
+  INACTIVE
+}
+
+"A location represents a physical place where a merchant conducts business."
+type Location @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+"An employee object that is used by the external API."
+type Employee @key(fields: "id") {
+  "UUID for this object."
+  id: ID!
+  
+  "The employee's first name."
+  firstName: String
+  
+  "The employee's last name."
+  lastName: String
+  
+  "The employee's email address"
+  email: String
+  
+  "The employee's phone number in E.164 format, i.e. '+12125554250'"
+  phoneNumber: String
+  
+  "A list of location IDs where this employee has access to."
+  locationIds: [String!] @inaccessible
+
+  "A list of locations where this employee has access to."
+  locations: [Location] @connect(
+    source: "connect-v2"
+    id: "RetrieveLocation"
+    http: { GET: "/locations", queryParams: "location_ids: $this.locationIds" }
+    selection: """
+    $.locations {
+      id
+    }"""
+  ) 
+  
+  "Specifies the status of the employee"
+  status: EmployeeStatus
+  
+  "Whether this employee is the owner of the merchant"
+  isOwner: Boolean
+  
+  "A read-only timestamp in RFC 3339 format."
+  createdAt: String!
+  
+  "A read-only timestamp in RFC 3339 format."
+  updatedAt: String!
+}
+
+"Connection type for Employee pagination"
+type EmployeeConnection {
+  "List of employees"
+  nodes: [Employee!]!
+  
+  "Pagination metadata"
+  pageInfo: EmployeePageInfo
+}
+
+"Information about pagination in a connection." 
+type EmployeePageInfo {
+  "Token used to fetch the next page"
+  cursor: String
+}
+
+type Query {
+  "Get a specific employee by ID"
+  employee(id: ID!): Employee
+    @connect(
+      source: "connect-v2"
+      id: "RetrieveEmployee"
+      entity: true
+      http: { GET: "/employees/{$args.id}" }
+      selection: """
+      $.employee {
+        id
+        firstName: first_name
+        lastName: last_name
+        email
+        phoneNumber: phone_number
+        locationIds: location_ids
+        status
+        isOwner: is_owner
+        createdAt: created_at
+        updatedAt: updated_at
+      }
+      """
+    )
+
+  "List all employees with optional filtering"
+  employees(
+    locationId: String
+    status: EmployeeStatus
+    limit: Int
+    cursor: String
+  ): EmployeeConnection!
+    @connect(
+      source: "connect-v2"
+      id: "ListEmployees"
+      http: {
+        GET: "/employees"
+        queryParams: """
+        location_id: $args.locationId
+        status: $args.status
+        limit: $args.limit
+        cursor: $args.cursor
+        """
+      }
+      selection: """
+      $({
+        nodes: $.employees,
+        pageInfo: {
+          cursor: $.cursor
+        }
+      }) {
+        nodes {
+          id
+          firstName: first_name
+          lastName: last_name
+          email
+          phoneNumber: phone_number
+          locationIds: location_ids
+          status
+          isOwner: is_owner
+          createdAt: created_at
+          updatedAt: updated_at
+        }
+        pageInfo {
+          cursor
+        }
+      }
+      """
+    )
+}

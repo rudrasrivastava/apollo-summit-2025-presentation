@@ -1,0 +1,588 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+}
+
+"""
+Information about the Square Catalog API
+"""
+type CatalogInfo {
+  """
+  Any errors that occurred during the request
+  """
+  errors: [Error]
+
+  """
+  Limits that apply to this API
+  """
+  limits: CatalogInfoLimits
+}
+
+"""
+Limits that apply to the Square Catalog API
+"""
+type CatalogInfoLimits {
+  """
+  Maximum number of object IDs that can be included in a single BatchDeleteCatalogObjects request
+  """
+  batchDeleteMaxObjectIds: Int
+
+  """
+  Maximum number of object IDs that can be included in a single BatchRetrieveCatalogObjects request
+  """
+  batchRetrieveMaxObjectIds: Int
+
+  """
+  Maximum number of objects that can be included in a single BatchUpsertCatalogObjects request
+  """
+  batchUpsertMaxObjectsPerBatch: Int
+
+  """
+  Maximum number of objects that can be included across all batches in a single BatchUpsertCatalogObjects request
+  """
+  batchUpsertMaxTotalObjects: Int
+
+  """
+  Maximum number of results that can be returned in a single page of a search request
+  """
+  searchMaxPageLimit: Int
+
+  """
+  Maximum number of item IDs that can be included in a single UpdateItemModifierLists request
+  """
+  updateItemModifierListsMaxItemIds: Int
+
+  """
+  Maximum number of modifier lists that can be disabled in a single UpdateItemModifierLists request
+  """
+  updateItemModifierListsMaxModifierListsToDisable: Int
+
+  """
+  Maximum number of modifier lists that can be enabled in a single UpdateItemModifierLists request
+  """
+  updateItemModifierListsMaxModifierListsToEnable: Int
+
+  """
+  Maximum number of item IDs that can be included in a single UpdateItemTaxes request
+  """
+  updateItemTaxesMaxItemIds: Int
+
+  """
+  Maximum number of taxes that can be disabled in a single UpdateItemTaxes request
+  """
+  updateItemTaxesMaxTaxesToDisable: Int
+
+  """
+  Maximum number of taxes that can be enabled in a single UpdateItemTaxes request
+  """
+  updateItemTaxesMaxTaxesToEnable: Int
+}
+
+"""
+A Square Catalog object
+"""
+type CatalogObject {
+  """
+  The ID of the CatalogObject
+  """
+  id: ID!
+
+  """
+  The type of the CatalogObject
+  """
+  type: String!
+
+  """
+  When the object was last updated
+  """
+  updatedAt: String!
+
+  """
+  The version of the object
+  """
+  version: Int!
+
+  """
+  Whether the object has been deleted
+  """
+  isDeleted: Boolean!
+
+  """
+  Whether the object is present at all locations
+  """
+  presentAtAllLocations: Boolean!
+
+  """
+  The IDs of locations where this object is present
+  """
+  presentAtLocationIds: [String!]
+
+  """
+  The IDs of locations where this object is absent
+  """
+  absentAtLocationIds: [String!]
+
+  """
+  Category data (if type is CATEGORY)
+  """
+  categoryData: CatalogCategory
+
+  """
+  Item data (if type is ITEM)
+  """
+  itemData: CatalogItem
+
+  """
+  Tax data (if type is TAX)
+  """
+  taxData: CatalogTax
+
+  """
+  Discount data (if type is DISCOUNT)
+  """
+  discountData: CatalogDiscount
+
+  """
+  Modifier list data (if type is MODIFIER_LIST)
+  """
+  modifierListData: CatalogModifierList
+
+  """
+  Modifier data (if type is MODIFIER)
+  """
+  modifierData: CatalogModifier
+
+  """
+  Time period data (if type is TIME_PERIOD)
+  """
+  timePeriodData: CatalogTimePeriod
+
+  """
+  Product set data (if type is PRODUCT_SET)
+  """
+  productSetData: CatalogProductSet
+
+  """
+  Pricing rule data (if type is PRICING_RULE)
+  """
+  pricingRuleData: CatalogPricingRule
+
+  """
+  Image data (if type is IMAGE)
+  """
+  imageData: CatalogImage
+
+  """
+  Measurement unit data (if type is MEASUREMENT_UNIT)
+  """
+  measurementUnitData: CatalogMeasurementUnit
+
+  """
+  Subscription plan data (if type is SUBSCRIPTION_PLAN)
+  """
+  subscriptionPlanData: CatalogSubscriptionPlan
+}
+
+"""
+A category in the catalog
+"""
+type CatalogCategory {
+  """
+  The category name
+  """
+  name: String!
+}
+
+"""
+An item in the catalog
+"""
+type CatalogItem {
+  """
+  The item name
+  """
+  name: String!
+
+  """
+  The item description
+  """
+  description: String
+}
+
+"""
+A tax in the catalog
+"""
+type CatalogTax {
+  """
+  The tax name
+  """
+  name: String!
+
+  """
+  The tax percentage
+  """
+  percentage: String
+}
+
+"""
+A discount in the catalog
+"""
+type CatalogDiscount {
+  """
+  The discount name
+  """
+  name: String!
+}
+
+"""
+A modifier list in the catalog
+"""
+type CatalogModifierList {
+  """
+  The modifier list name
+  """
+  name: String!
+}
+
+"""
+A modifier in the catalog
+"""
+type CatalogModifier {
+  """
+  The modifier name
+  """
+  name: String!
+}
+
+"""
+A time period in the catalog
+"""
+type CatalogTimePeriod {
+  """
+  The time period name
+  """
+  name: String!
+}
+
+"""
+A product set in the catalog
+"""
+type CatalogProductSet {
+  """
+  The product set name
+  """
+  name: String!
+}
+
+"""
+A pricing rule in the catalog
+"""
+type CatalogPricingRule {
+  """
+  The pricing rule name
+  """
+  name: String!
+}
+
+"""
+An image in the catalog
+"""
+type CatalogImage {
+  """
+  The image URL
+  """
+  url: String!
+}
+
+"""
+A measurement unit in the catalog
+"""
+type CatalogMeasurementUnit {
+  """
+  The measurement unit name
+  """
+  name: String!
+}
+
+"""
+A subscription plan in the catalog
+"""
+type CatalogSubscriptionPlan {
+  """
+  The subscription plan name
+  """
+  name: String!
+}
+
+"""
+A connection type for CatalogObjects that supports pagination
+"""
+type CatalogObjectConnection {
+  """
+  A list of CatalogObjects
+  """
+  objects: [CatalogObject!]
+
+  """
+  Cursor for fetching the next page of results
+  """
+  cursor: String
+}
+
+"""
+An error that occurred during a catalog request
+"""
+type Error {
+  """
+  The error category
+  """
+  category: String!
+
+  """
+  The error code
+  """
+  code: String!
+
+  """
+  The error detail
+  """
+  detail: String
+
+  """
+  The error field
+  """
+  field: String
+}
+
+type Query {
+  """
+  Retrieves information about Square Catalog API limits and specifications
+  """
+  catalogInfo: CatalogInfo
+    @connect(
+      source: "connect-v2"
+      id: "CatalogInfo"
+      http: { GET: "/catalog/info" }
+      selection: """
+      limits {
+        batchDeleteMaxObjectIds: batch_delete_max_object_ids
+        batchRetrieveMaxObjectIds: batch_retrieve_max_object_ids
+        batchUpsertMaxObjectsPerBatch: batch_upsert_max_objects_per_batch
+        batchUpsertMaxTotalObjects: batch_upsert_max_total_objects
+        searchMaxPageLimit: search_max_page_limit
+        updateItemModifierListsMaxItemIds: update_item_modifier_lists_max_item_ids
+        updateItemModifierListsMaxModifierListsToDisable: update_item_modifier_lists_max_modifier_lists_to_disable
+        updateItemModifierListsMaxModifierListsToEnable: update_item_modifier_lists_max_modifier_lists_to_enable
+        updateItemTaxesMaxItemIds: update_item_taxes_max_item_ids
+        updateItemTaxesMaxTaxesToDisable: update_item_taxes_max_taxes_to_disable
+        updateItemTaxesMaxTaxesToEnable: update_item_taxes_max_taxes_to_enable
+      }
+      errors {
+        category
+        code
+        detail
+        field
+      }
+      """
+    )
+
+  """
+  Lists catalog objects of specified types
+  """
+  catalogObjects(
+    """
+    Types of catalog objects to retrieve
+    """
+    types: String
+    """
+    Pagination cursor from previous response
+    """
+    cursor: String
+    """
+    Specific version of catalog objects to retrieve
+    """
+    catalogVersion: Int
+  ): CatalogObjectConnection
+    @connect(
+      source: "connect-v2"
+      id: "ListCatalog"
+      http: {
+        GET: "/catalog/list"
+        queryParams: """
+        types: $args.types
+        cursor: $args.cursor
+        catalog_version: $args.catalogVersion
+        """
+      }
+      selection: """
+      objects {
+        id
+        type
+        updatedAt: updated_at
+        version
+        isDeleted: is_deleted
+        presentAtAllLocations: present_at_all_locations
+        presentAtLocationIds: present_at_location_ids
+        absentAtLocationIds: absent_at_location_ids
+        categoryData: category_data {
+          name
+        }
+        itemData: item_data {
+          name
+          description
+        }
+        taxData: tax_data {
+          name
+          percentage
+        }
+        discountData: discount_data {
+          name
+        }
+        modifierListData: modifier_list_data {
+          name
+        }
+        modifierData: modifier_data {
+          name
+        }
+        timePeriodData: time_period_data {
+          name
+        }
+        productSetData: product_set_data {
+          name
+        }
+        pricingRuleData: pricing_rule_data {
+          name
+        }
+        imageData: image_data {
+          url
+        }
+        measurementUnitData: measurement_unit_data {
+          name
+        }
+        subscriptionPlanData: subscription_plan_data {
+          name
+        }
+      }
+      cursor
+      """
+    )
+
+  """
+  Retrieves a specific catalog object by ID
+  """
+  catalogObject(
+    """
+    ID of the catalog object to retrieve
+    """
+    id: ID!
+    """
+    Whether to include related objects
+    """
+    includeRelatedObjects: Boolean
+    """
+    Specific version of the catalog object to retrieve
+    """
+    catalogVersion: Int
+    """
+    Whether to include category path to root
+    """
+    includeCategoryPathToRoot: Boolean
+  ): CatalogObject
+    @connect(
+      source: "connect-v2"
+      id: "RetrieveCatalogObject"
+      http: {
+        GET: "/catalog/object/{$args.id}"
+        queryParams: """
+        include_related_objects: $args.includeRelatedObjects
+        catalog_version: $args.catalogVersion
+        include_category_path_to_root: $args.includeCategoryPathToRoot
+        """
+      }
+      selection: """
+      $.object {
+        id
+        type
+        updatedAt: updated_at
+        version
+        isDeleted: is_deleted
+        presentAtAllLocations: present_at_all_locations
+        presentAtLocationIds: present_at_location_ids
+        absentAtLocationIds: absent_at_location_ids
+        categoryData: category_data {
+          name
+        }
+        itemData: item_data {
+          name
+          description
+        }
+        taxData: tax_data {
+          name
+          percentage
+        }
+        discountData: discount_data {
+          name
+        }
+        modifierListData: modifier_list_data {
+          name
+        }
+        modifierData: modifier_data {
+          name
+        }
+        timePeriodData: time_period_data {
+          name
+        }
+        productSetData: product_set_data {
+          name
+        }
+        pricingRuleData: pricing_rule_data {
+          name
+        }
+        imageData: image_data {
+          url
+        }
+        measurementUnitData: measurement_unit_data {
+          name
+        }
+        subscriptionPlanData: subscription_plan_data {
+          name
+        }
+      }
+      """
+    )
+}

@@ -1,0 +1,20 @@
+"""
+Represents an amount of money. Money fields can be signed or unsigned.
+Fields that do not explicitly define whether they are signed or unsigned are
+considered unsigned and can only hold positive amounts. For signed fields, the
+sign of the value indicates the purpose of the money transfer.
+"""
+type Money @shareable {
+  """
+  The amount of money, in the smallest denomination of the currency.
+  For example, when currency is USD, amount is in cents.
+  Monetary amounts can be positive or negative.
+  """
+  amount: Int
+
+  """
+  The type of currency, in ISO 4217 format.
+  For example, the currency code for US dollars is USD.
+  """
+  currency: String
+}

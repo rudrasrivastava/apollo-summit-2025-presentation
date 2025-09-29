@@ -1,0 +1,458 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+    }
+  )
+
+"""
+Represents a postal address in a country.
+"""
+type Address @shareable {
+  """
+  The first line of the address.
+  Provides the address's most specific details, like street number, street name, and building name.
+  """
+  addressLine1: String
+
+  """
+  The second line of the address, if any.
+  """
+  addressLine2: String
+
+  """
+  The third line of the address, if any.
+  """
+  addressLine3: String
+
+  """
+  The city or town of the address.
+  """
+  locality: String
+
+  """
+  A civil region within the address's locality, if any.
+  """
+  sublocality: String
+
+  """
+  A civil region within the address's sublocality, if any.
+  """
+  sublocality2: String
+
+  """
+  A civil region within the address's sublocality_2, if any.
+  """
+  sublocality3: String
+
+  """
+  A civil entity within the address's country. In the US, this is the state.
+  """
+  administrativeDistrictLevel1: String
+
+  """
+  A civil entity within the address's administrative_district_level_1.
+  In the US, this is the county.
+  """
+  administrativeDistrictLevel2: String
+
+  """
+  A civil entity within the address's administrative_district_level_2, if any.
+  """
+  administrativeDistrictLevel3: String
+
+  """
+  The address's postal code.
+  """
+  postalCode: String
+
+  """
+  The address's country, in the two-letter format of ISO 3166. For example, US or FR.
+  """
+  country: String
+
+  """
+  Optional first name when it's representing recipient.
+  """
+  firstName: String
+
+  """
+  Optional last name when it's representing recipient.
+  """
+  lastName: String
+}
+
+"""
+Indicates a card's type, such as CREDIT or DEBIT.
+"""
+enum CardType {
+  UNKNOWN_CARD_TYPE
+  CREDIT
+  DEBIT
+}
+
+"""
+Indicates a card's prepaid type, such as NOT_PREPAID or PREPAID.
+"""
+enum CardPrepaidType {
+  UNKNOWN_PREPAID_TYPE
+  NOT_PREPAID
+  PREPAID
+}
+
+"""
+Indicates the brand for a co-branded card.
+"""
+enum CardCoBrand {
+  UNKNOWN
+  AFTERPAY
+  CLEARPAY
+}
+
+"""
+Indicates the type of issuer alert for a card on file.
+"""
+enum CardIssuerAlert {
+  ISSUER_ALERT_CARD_CLOSED
+}
+
+"""
+A minimal representation of a customer entity.
+"""
+type Customer @key(fields: "id", resolvable: false) {
+  """
+  The unique identifier of the customer.
+  """
+  id: ID!
+}
+
+"""
+A minimal representation of a merchant entity.
+"""
+type Merchant @key(fields: "id", resolvable: false) {
+  """
+  The unique identifier of the merchant.
+  """
+  id: ID!
+}
+
+"""
+Represents a payment card.
+"""
+type Card @key(fields: "id") {
+  """
+  Unique ID for the card.
+  """
+  id: ID!
+
+  """
+  The brand of the card.
+  """
+  cardBrand: String!
+
+  """
+  The last 4 digits of the card number.
+  """
+  last4: String!
+
+  """
+  The expiration month of the card (1-12).
+  """
+  expMonth: Int
+
+  """
+  The four-digit expiration year of the card.
+  """
+  expYear: Int
+
+  """
+  The name of the cardholder.
+  """
+  cardholderName: String
+
+  """
+  The billing address for the card.
+  """
+  billingAddress: Address
+
+  """
+  Square-assigned identifier to identify the card across multiple locations.
+  """
+  fingerprint: String!
+
+  """
+  The ID of the customer associated with the card.
+  """
+  customerId: ID @inaccessible
+
+  """
+  The customer associated with the card.
+  """
+  customer: Customer
+  @connect(
+    source: "connect-v2"
+    id: "GetCardCustomer"
+    http: { GET: "/v2/customers/{$this.customerId}" }
+    selection: """
+    $.customer {
+      id
+    }
+    """
+  )
+
+  """
+  The ID of the merchant associated with the card.
+  """
+  merchantId: ID! @inaccessible
+
+  """
+  The merchant associated with the card.
+  """
+  merchant: Merchant
+  @connect(
+    source: "connect-v2"
+    id: "GetCardMerchant"
+    http: { GET: "/v2/merchants/{$this.merchantId}" }
+    selection: """
+    $.merchant {
+      id
+    }
+    """
+  )
+
+  """
+  Optional user-defined reference ID that associates this card with another entity.
+  """
+  referenceId: String
+
+  """
+  Indicates whether the card can be used for payments.
+  """
+  enabled: Boolean!
+
+  """
+  The type of the card (CREDIT, DEBIT, etc).
+  """
+  cardType: CardType!
+
+  """
+  Indicates whether the card is prepaid.
+  """
+  prepaidType: CardPrepaidType!
+
+  """
+  The first six digits of the card number (BIN).
+  """
+  bin: String!
+
+  """
+  Current version number of the card.
+  """
+  version: Int!
+
+  """
+  The card's co-brand if available.
+  """
+  cardCoBrand: CardCoBrand
+
+  """
+  An alert from the issuing bank about the card status.
+  """
+  issuerAlert: CardIssuerAlert
+
+  """
+  The timestamp when the current issuer alert was received.
+  """
+  issuerAlertAt: String
+
+  """
+  Indicates whether the card is linked to an HSA or FSA account.
+  """
+  hsaFsa: Boolean
+}
+
+"""
+Connection type for Card pagination
+"""
+type CardConnection {
+  """
+  The list of cards.
+  """
+  nodes: [Card!]!
+
+  """
+  Pagination cursor for the next page of results.
+  """
+  cursor: String
+}
+
+type Query {
+  """
+  Retrieves details for a specific Card.
+  """
+  card(
+    """
+    Unique ID for the desired Card.
+    """
+    id: ID!
+  ): Card
+  @connect(
+    source: "connect-v2"
+    id: "RetrieveCard"
+    entity: true
+    http: { GET: "/v2/cards/{$args.id}" }
+    selection: """
+    $.card {
+      id
+      cardBrand: card_brand
+      last4: last_4
+      expMonth: exp_month
+      expYear: exp_year
+      cardholderName: cardholder_name
+      billingAddress: billing_address {
+        addressLine1: address_line_1
+        addressLine2: address_line_2
+        addressLine3: address_line_3
+        locality
+        sublocality
+        sublocality2
+        sublocality3
+        administrativeDistrictLevel1: administrative_district_level_1
+        administrativeDistrictLevel2: administrative_district_level_2
+        administrativeDistrictLevel3: administrative_district_level_3
+        postalCode: postal_code
+        country
+        firstName: first_name
+        lastName: last_name
+      }
+      fingerprint
+      customerId: customer_id
+      merchantId: merchant_id
+      referenceId: reference_id
+      enabled
+      cardType: card_type
+      prepaidType: prepaid_type
+      bin
+      version
+      cardCoBrand: card_co_brand
+      issuerAlert: issuer_alert
+      issuerAlertAt: issuer_alert_at
+      hsaFsa: hsa_fsa
+    }
+    """
+  )
+
+  """
+  List cards for a merchant.
+  """
+  cards(
+    """
+    A pagination cursor returned by a previous call to this endpoint.
+    """
+    cursor: String
+
+    """
+    Limit results to cards associated with the customer supplied.
+    """
+    customerId: ID
+
+    """
+    Include disabled cards in the response.
+    """
+    includeDisabled: Boolean = false
+
+    """
+    Limit results to cards associated with the reference_id supplied.
+    """
+    referenceId: String
+
+    """
+    Sort order for the results (ASC or DESC).
+    """
+    sortOrder: String = "ASC"
+  ): CardConnection!
+  @connect(
+    source: "connect-v2"
+    id: "ListCards"
+    http: {
+      GET: "/v2/cards"
+      queryParams: """
+      cursor: $args.cursor
+      customer_id: $args.customerId
+      include_disabled: $args.includeDisabled
+      reference_id: $args.referenceId
+      sort_order: $args.sortOrder
+      """
+    }
+    selection: """
+    $({ nodes: $.cards }) {
+      nodes {
+        id
+        cardBrand: card_brand
+        last4: last_4
+        expMonth: exp_month
+        expYear: exp_year
+        cardholderName: cardholder_name
+        billingAddress: billing_address {
+          addressLine1: address_line_1
+          addressLine2: address_line_2
+          addressLine3: address_line_3
+          locality
+          sublocality
+          sublocality2
+          sublocality3
+          administrativeDistrictLevel1: administrative_district_level_1
+          administrativeDistrictLevel2: administrative_district_level_2
+          administrativeDistrictLevel3: administrative_district_level_3
+          postalCode: postal_code
+          country
+          firstName: first_name
+          lastName: last_name
+        }
+        fingerprint
+        customerId: customer_id
+        merchantId: merchant_id
+        referenceId: reference_id
+        enabled
+        cardType: card_type
+        prepaidType: prepaid_type
+        bin
+        version
+        cardCoBrand: card_co_brand
+        issuerAlert: issuer_alert
+        issuerAlertAt: issuer_alert_at
+        hsaFsa: hsa_fsa
+      }
+      cursor
+    }
+    """
+  )
+}

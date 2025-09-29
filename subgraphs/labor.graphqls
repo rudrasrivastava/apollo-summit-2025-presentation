@@ -1,0 +1,161 @@
+schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.11"
+    import: [
+      "@extends"
+      "@external"
+      "@inaccessible"
+      "@key"
+      "@override"
+      "@policy"
+      "@provides"
+      "@requires"
+      "@shareable"
+      "@tag"
+      "FieldSet"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/connect/v0.2"
+    import: [
+      "@connect"
+      "@source"
+      "JSONSelection"
+      "HTTPHeaderMapping"
+      "ConnectHTTP"
+      "SourceHTTP"
+    ]
+  )
+  @source(
+    name: "connect-v2"
+    http: {
+      baseURL: "https://connect.squareupstaging.com/v2"
+      headers: [
+        { name: "Accept", value: "application/json" }
+        { name: "Authorization", from: "Authorization" }
+      ]
+    }
+  ) {
+  query: Query
+}
+
+type Query {
+  "Returns a paginated list of break type instances for a business"
+  breakTypes(
+    "Filter break types by location ID"
+    locationId: ID
+    "Maximum number of results to return (1-200, default 200)"
+    limit: Int
+    "Cursor for pagination"
+    cursor: String
+  ): BreakTypeConnection!
+    @connect(
+      source: "connect-v2"
+      id: "ListBreakTypes"
+      http: {
+        GET: "/labor/break-types"
+        queryParams: """
+        location_id: $args.locationId
+        limit: $args.limit
+        cursor: $args.cursor
+        """
+      }
+      selection: """
+      nodes: $.break_types {
+        id
+        locationId: location_id
+        breakName: break_name
+        expectedDuration: expected_duration
+        isPaid: is_paid
+        version
+        createdAt: created_at
+        updatedAt: updated_at
+      }
+      pageInfo {
+        cursor
+      }
+      """
+    )
+
+  "Get a specific break type by ID"
+  breakType(
+    "The ID of the break type to retrieve"
+    id: ID!
+  ): BreakType
+    @connect(
+      source: "connect-v2"
+      id: "GetBreakType"
+      http: { GET: "/labor/break-types/{$args.id}" }
+      selection: """
+      $ {
+        id
+        locationId: location_id
+        breakName: break_name
+        expectedDuration: expected_duration
+        isPaid: is_paid
+        version
+        createdAt: created_at
+        updatedAt: updated_at
+      }
+      """
+    )
+}
+
+"A business location"
+type Location @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+"A template for a type of break that can be added to a timecard"
+type BreakType {
+  "The UUID for this object"
+  id: ID!
+  
+  "The ID of the business location this type of break applies to (deprecated - use location field instead)"
+  locationId: ID! @inaccessible
+  
+  "The business location this type of break applies to"
+  location: Location! @connect(
+    source: "connect-v2"
+    id: "GetLocation"
+    http: { GET: "/locations/{$this.locationId}" }
+    selection: """
+    $ {
+      id
+    }
+    """
+  )
+  
+  "A human-readable name for this type of break"
+  breakName: String!
+  
+  "The expected length of this break (RFC-3339 duration format)"
+  expectedDuration: String!
+  
+  "Whether this break counts towards time worked for compensation purposes"
+  isPaid: Boolean!
+  
+  "Version for concurrency control"
+  version: Int
+  
+  "When this break type was created"
+  createdAt: String
+  
+  "When this break type was last updated"
+  updatedAt: String
+}
+
+"Connection type for paginated break types"
+type BreakTypeConnection {
+  "List of break types"
+  nodes: [BreakType!]!
+  
+  "Pagination information"
+  pageInfo: BreakTypePageInfo!
+}
+
+"Information for break type pagination"
+type BreakTypePageInfo {
+  "Cursor for the next page of results"
+  cursor: String
+}
