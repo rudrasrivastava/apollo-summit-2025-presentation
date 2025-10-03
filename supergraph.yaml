@@ -28,3 +28,7 @@ subgraphs:
     routing_url: http://ignored
     schema:
       file: subgraphs/orders.graphqls
+  vendors:
+    routing_url: http://ignored
+    schema:
+      file: subgraphs/vendors.graphqls

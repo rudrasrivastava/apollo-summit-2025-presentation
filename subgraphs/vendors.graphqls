@@ -40,88 +40,62 @@ schema
   mutation: Mutation
 }
 
+input VendorInput {
+  """
+  The name of the Vendor.
+  """
+  name: String!
+
+  """
+  The status of the Vendor.
+  """
+  status: VendorStatus
+}
+
+
 type Mutation {
+  """
+  Creates a new vendor
+  """
+  createVendor(
+    """
+    The vendor data to create
+    """
+    vendor: VendorInput!
+    """
+    A unique string that identifies this CreateVendor request.
+    Keys can be any valid string but must be unique for every request.
+    """
+    idempotencyKey: String
+  ): Vendor
+    @connect(
+      source: "connect-v2"
+      id: "CreateVendor"
+      http: { 
+        POST: "/vendors/create"
+        body: """
+        $({
+          "vendor": $args.vendor,
+          "idempotency_key": $args.idempotencyKey
+        })
+        """
+      }
+      selection: """
+      $.vendor {
+        id
+        name
+        version
+        status
+        createdAt: created_at
+        updatedAt: updated_at
+      }
+      """
+    )
+
   ignoreMe: ID
     @connect(http: { POST: "https://never" }, selection: "$")
     @inaccessible
     @shareable
-}
-
-"""
-Represents a postal address in a country.
-"""
-type Address @shareable {
-  """
-  The first line of the address.
-  Provides the address's most specific details, like street number, street name, and building name.
-  """
-  addressLine1: String
-
-  """
-  The second line of the address, if any.
-  """
-  addressLine2: String
-
-  """
-  The third line of the address, if any.
-  """
-  addressLine3: String
-
-  """
-  The city or town of the address.
-  """
-  locality: String
-
-  """
-  A civil region within the address's locality, if any.
-  """
-  sublocality: String
-
-  """
-  A civil region within the address's sublocality, if any.
-  """
-  sublocality2: String
-
-  """
-  A civil region within the address's sublocality_2, if any.
-  """
-  sublocality3: String
-
-  """
-  A civil entity within the address's country. In the US, this is the state.
-  """
-  administrativeDistrictLevel1: String
-
-  """
-  A civil entity within the address's administrative_district_level_1.
-  In the US, this is the county.
-  """
-  administrativeDistrictLevel2: String
-
-  """
-  A civil entity within the address's administrative_district_level_2, if any.
-  """
-  administrativeDistrictLevel3: String
-
-  """
-  The address's postal code.
-  """
-  postalCode: String
-
-  """
-  The address's country, in the two-letter format of ISO 3166. For example, US or FR.
-  """
-  country: String
-
-  """
-  Optional first name when it's representing recipient.
-  """
-  firstName: String
-
-  """
-  Optional last name when it's representing recipient.
-  """
-  lastName: String
 }
 
 """
@@ -149,26 +123,6 @@ type Vendor @key(fields: "id") {
   name: String
 
   """
-  The address of the Vendor.
-  """
-  address: Address
-
-  """
-  The contacts of the Vendor.
-  """
-  contacts: [VendorContact!]
-
-  """
-  The account number of the Vendor.
-  """
-  accountNumber: String
-
-  """
-  A note detailing information about the Vendor.
-  """
-  note: String
-
-  """
   The version of the Vendor.
   """
   version: Int!
@@ -177,41 +131,6 @@ type Vendor @key(fields: "id") {
   The status of the Vendor.
   """
   status: VendorStatus
-}
-
-"""
-Represents a contact of a Vendor.
-"""
-type VendorContact {
-  """
-  A unique Square-generated ID for the VendorContact.
-  """
-  id: ID!
-
-  """
-  The name of the VendorContact.
-  """
-  name: String
-
-  """
-  The email address of the VendorContact.
-  """
-  emailAddress: String
-
-  """
-  The phone number of the VendorContact.
-  """
-  phoneNumber: String
-
-  """
-  The state of the VendorContact.
-  """
-  removed: Boolean
-
-  """
-  The ordinal of the VendorContact.
-  """
-  ordinal: Int!
 }
 
 """
@@ -229,21 +148,6 @@ enum VendorStatus {
   INACTIVE
 }
 
-"""
-Connection type for Vendors when using cursor-based pagination
-"""
-type VendorConnection {
-  """
-  The list of vendors
-  """
-  nodes: [Vendor!]!
-
-  """
-  Pagination cursor for the next page of results
-  """
-  cursor: String
-}
-
 type Query {
   """
   Retrieves a vendor by ID
@@ -258,74 +162,15 @@ type Query {
       source: "connect-v2"
       id: "RetrieveVendor"
       entity: true
-      http: { GET: "/v2/vendors/{$args.id}" }
+      http: { GET: "vendors/{$args.id}" }
       selection: """
       $.vendor {
         id
         name
         createdAt: created_at
         updatedAt: updated_at
-        accountNumber: account_number
-        address
-        contacts
-        note
         version
         status
-      }
-      """
-    )
-
-  """
-  Search for vendors
-  """
-  vendors(
-    """
-    Pagination cursor from a previous response
-    """
-    cursor: String
-  ): VendorConnection
-    @connect(
-      source: "connect-v2"
-      id: "SearchVendors"
-      http: { 
-        GET: "/v2/vendors/search"
-        queryParams: """
-          cursor: $args.cursor
-        """
-      }
-      selection: """
-      $({
-        nodes: $.vendors
-        cursor: $.cursor
-      }) {
-        nodes {
-          id
-          name
-          createdAt: created_at
-          updatedAt: updated_at
-          accountNumber: account_number
-          address {
-            addressLine1: address_line_1
-            addressLine2: address_line_2
-            addressLine3: address_line_3
-            locality
-            sublocality
-            sublocality2: sublocality_2
-            sublocality3: sublocality_3
-            administrativeDistrictLevel1: administrative_district_level_1
-            administrativeDistrictLevel2: administrative_district_level_2
-            administrativeDistrictLevel3: administrative_district_level_3
-            postalCode: postal_code
-            country
-            firstName: first_name
-            lastName: last_name
-          }
-          contacts
-          note
-          version
-          status
-        }
-        cursor
       }
       """
     )

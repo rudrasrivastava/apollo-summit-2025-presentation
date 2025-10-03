@@ -21,9 +21,13 @@ export function deployToVercelTool(server) {
             const htmlContent = fs.readFileSync(htmlFilePath, 'utf8');
             // Don't add any custom headers - let Vercel use its defaults
             // Based on Vercel community feedback, custom headers can interfere with iframe embedding
+            // Create unique project name with random suffix (max 8 chars)
+            const randomSuffix = Math.random().toString(36).substring(2, 10);
+            const baseProjectName = projectName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            const uniqueProjectName = `${baseProjectName}-${randomSuffix}`;
             // Prepare deployment payload
             const deploymentData = {
-                name: projectName.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+                name: uniqueProjectName,
                 files: [
                     {
                         file: 'index.html',
@@ -47,8 +51,7 @@ export function deployToVercelTool(server) {
             }
             // Extract all possible URLs from Vercel response
             const deploymentUrl = `https://${response.url}`;
-            const cleanProjectName = projectName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-            const publicUrl = `https://${cleanProjectName}.vercel.app`;
+            const publicUrl = `https://${uniqueProjectName}.vercel.app`;
             const inspectorUrl = `https://vercel.com/${response.creator?.username || 'user'}/${response.name}`;
             return {
                 content: [

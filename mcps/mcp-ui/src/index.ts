@@ -70,7 +70,7 @@ class EmbeddableUIServer {
         tools: [
           {
             name: 'embed_site',
-            description: 'Embed an external website in an iframe',
+            description: 'Embed an external website in an iframe. DO NOT CALL THIS WITH OTHER TOOLS',
             inputSchema: {
               type: 'object',
               properties: {
@@ -103,10 +103,10 @@ class EmbeddableUIServer {
 
         const uri = `ui://apollo-embeddable-ui/site-${Date.now()}` as const;
         
-        // GooseConfig for inline display
+        // GooseConfig for sidecar display
         const gooseConfig = {
-          type: "inline",
-          height: "100vh",
+          type: "sidecar",
+          width: "50%",
         };
 
         return {
