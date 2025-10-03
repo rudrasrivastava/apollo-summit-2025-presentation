@@ -1,0 +1,38 @@
+query ListCustomers($cursor: String, $limit: Int = 20, $sortField: CustomerSortField, $sortOrder: SortOrder) {
+  customers(
+    cursor: $cursor
+    limit: $limit
+    sortField: $sortField
+    sortOrder: $sortOrder
+  ) {
+    nodes {
+      id
+      givenName
+      familyName
+      nickname
+      companyName
+      emailAddress
+      phoneNumber
+      address {
+        addressLine1
+        addressLine2
+        locality
+        administrativeDistrictLevel1
+        postalCode
+        country
+      }
+      createdAt
+      updatedAt
+      birthday
+      note
+      preferences {
+        emailUnsubscribed
+      }
+      creationSource
+    }
+    pageInfo {
+      cursor
+      count
+    }
+  }
+}
