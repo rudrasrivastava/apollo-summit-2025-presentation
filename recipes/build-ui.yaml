@@ -34,7 +34,24 @@ instructions: |
        - Create an HTML file with all the UI components and styles (and dynamically load data using GraphQL operations)
        - Add loading states, error boundaries, and empty states
        - Style with modern CSS/Tailwind for professional appearance
+       - Make sure to add this HTML chunk to the file so that it resizes well in the embedded iframe. The iframe looks weird if it doesn't resize.
+        ```html
+          const resizeObserver = new ResizeObserver((entries) => {
+              entries.forEach((entry) => {
+                window.parent.postMessage(
+                  {
+                    type: "ui-size-change",
+                    payload: {
+                      height: entry.contentRect.height,
+                    },
+                  },
+                  "*"
+                );
+              });
+            });
 
+            resizeObserver.observe(document.documentElement);
+        ```
     4. Integration Phase:
        - Connect UI component to GraphQL operations
        - Make sure all variables are used in the operations and are properly declared
@@ -45,6 +62,10 @@ instructions: |
     5. Deployment Phase:
        - Deploy the UI to Vercel
        - Provide the URL of the deployed UI
+    
+    6. Embedding Phase:
+       - Embed the UI site public URL in a custom iframe using the mcp-ui mcp and show the embedded UI.
+       - DO NOT CALL WITH OTHER TOOLS
 
   Definition of Done:
     - All necessary GraphQL operations are generated and validated
@@ -54,7 +75,7 @@ instructions: |
     - Code is clean, well-commented, and follows best practices
     - All user interactions work smoothly with proper feedback
     - UI is deployed to Vercel
-    - As a last step, embed the UI site public URL in a custom iframe using the mcp-ui mcp and show the embedded UI
+    - As a last step, embed the UI site public URL in a custom iframe using the mcp-ui mcp and show the embedded UI (DO NOT CALL WITH OTHER TOOLS)
 
   File Structure:
     - Operations: ~/Development/apollo-summit-2025-presentation/operations/<OPERATION_NAME>.graphql

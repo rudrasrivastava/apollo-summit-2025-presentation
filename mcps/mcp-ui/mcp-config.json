@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "apollo-embeddable-ui": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "cwd": "/Users/rudra/Development/apollo-summit-2025-presentation/mcps/mcp-ui"
+    }
+  }
+}

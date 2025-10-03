@@ -70,7 +70,7 @@ class EmbeddableUIServer {
         tools: [
           {
             name: 'embed_site',
-            description: 'Embed an external website in an iframe',
+            description: 'Embed an external website in an iframe. DO NOT CALL THIS WITH OTHER TOOLS',
             inputSchema: {
               type: 'object',
               properties: {
