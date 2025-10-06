@@ -60,7 +60,7 @@ instructions: |
        - Test all user flows and edge cases
     
     5. Deployment Phase:
-       - Deploy the UI to Vercel
+       - Deploy the UI to Vercel with a unique but short project name
        - Provide the URL of the deployed UI
     
     6. Embedding Phase:
